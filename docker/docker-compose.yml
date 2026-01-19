@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: rag-postgres
+    environment:
+      POSTGRES_USER: rag_user
+      POSTGRES_PASSWORD: rag_password
+      POSTGRES_DB: rag_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - rag-network
+
+  # Backend service (to be added later)
+  # backend:
+  #   build:
+  #     context: ../backend
+  #     dockerfile: Dockerfile
+  #   container_name: rag-backend
+  #   ports:
+  #     - "8080:8080"
+  #   depends_on:
+  #     - postgres
+  #   networks:
+  #     - rag-network
+
+  # Frontend service (to be added later)
+  # frontend:
+  #   build:
+  #     context: ../frontend
+  #     dockerfile: Dockerfile
+  #   container_name: rag-frontend
+  #   ports:
+  #     - "5173:5173"
+  #   networks:
+  #     - rag-network
+
+volumes:
+  postgres_data:
+
+networks:
+  rag-network:
+    driver: bridge

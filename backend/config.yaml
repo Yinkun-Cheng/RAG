@@ -1,0 +1,28 @@
+server:
+  port: 8080
+  mode: debug
+
+database:
+  postgres:
+    host: localhost
+    port: 5432
+    user: rag_user
+    password: rag_password
+    dbname: rag_db
+    sslmode: disable
+  
+  weaviate:
+    host: localhost
+    port: 8080
+    scheme: http
+    api_key: ""
+
+storage:
+  type: local
+  local_path: ./uploads
+  max_file_size: 10485760
+
+logging:
+  level: info
+  format: json
+  output: stdout

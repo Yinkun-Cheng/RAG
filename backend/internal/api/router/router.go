@@ -86,6 +86,11 @@ func SetupRouter(router *gin.Engine, db *gorm.DB) {
 				prds.PUT("/:prd_id", prdHandler.UpdatePRD)
 				prds.DELETE("/:prd_id", prdHandler.DeletePRD)
 				
+				// PRD 状态管理
+				prds.PUT("/:prd_id/status", prdHandler.UpdatePRDStatus)
+				prds.POST("/:prd_id/publish", prdHandler.PublishPRD)
+				prds.POST("/:prd_id/archive", prdHandler.ArchivePRD)
+				
 				// PRD 版本管理
 				prds.GET("/:prd_id/versions", prdHandler.GetPRDVersions)
 				prds.GET("/:prd_id/versions/compare", prdHandler.ComparePRDVersions)

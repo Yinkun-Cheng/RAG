@@ -22,6 +22,9 @@ type Service interface {
 	GetPRDVersions(prdID string) ([]*prd.PRDVersion, error)
 	GetPRDVersion(prdID string, version int) (*prd.PRDVersion, error)
 	ComparePRDVersions(prdID string, version1, version2 int) (*VersionCompareResponse, error)
+	UpdatePRDStatus(id string, status string) (*prd.PRDDocument, error)
+	PublishPRD(id string) (*prd.PRDDocument, error)
+	ArchivePRD(id string) (*prd.PRDDocument, error)
 }
 
 type service struct {
@@ -344,4 +347,82 @@ func (s *service) ComparePRDVersions(prdID string, version1, version2 int) (*Ver
 		Version2: v2,
 		Changes:  changes,
 	}, nil
+}
+
+
+// UpdatePRDStatus 更新 PRD 状态
+func (s *service) UpdatePRDStatus(id string, status string) (*prd.PRDDocument, error) {
+	// 验证状态值
+	validStatuses := map[string]bool{
+		"draft":     true,
+		"published": true,
+		"archived":  true,
+	}
+	if !validStatuses[status] {
+		return nil, errors.New("invalid status, must be one of: draft, published, archived")
+	}
+
+	doc, err := s.repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("PRD not found")
+		}
+		return nil, err
+	}
+
+	// 更新状态
+	doc.Status = status
+	if err := s.repo.Update(doc); err != nil {
+		return nil, err
+	}
+
+	return s.repo.GetByID(doc.ID)
+}
+
+// PublishPRD 发布 PRD
+func (s *service) PublishPRD(id string) (*prd.PRDDocument, error) {
+	doc, err := s.repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("PRD not found")
+		}
+		return nil, err
+	}
+
+	// 只有草稿状态才能发布
+	if doc.Status != "draft" {
+		return nil, errors.New("only draft PRD can be published")
+	}
+
+	// 更新状态为已发布
+	doc.Status = "published"
+	if err := s.repo.Update(doc); err != nil {
+		return nil, err
+	}
+
+	return s.repo.GetByID(doc.ID)
+}
+
+// ArchivePRD 归档 PRD
+func (s *service) ArchivePRD(id string) (*prd.PRDDocument, error) {
+	doc, err := s.repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("PRD not found")
+		}
+		return nil, err
+	}
+
+	// 只有已发布状态才能归档
+	if doc.Status != "published" {
+		return nil, errors.New("only published PRD can be archived")
+	}
+
+	// 更新状态为已归档
+	doc.Status = "archived"
+	if err := s.repo.Update(doc); err != nil {
+		return nil, err
+	}
+
+	return s.repo.GetByID(doc.ID)
 }

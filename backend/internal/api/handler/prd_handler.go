@@ -284,3 +284,90 @@ func (h *PRDHandler) ComparePRDVersions(c *gin.Context) {
 
 	c.JSON(http.StatusOK, common.SuccessResponse(result))
 }
+
+
+// UpdatePRDStatus 更新 PRD 状态
+// @Summary 更新 PRD 状态
+// @Tags PRD 管理
+// @Accept json
+// @Produce json
+// @Param id path string true "项目ID"
+// @Param prd_id path string true "PRD ID"
+// @Param request body map[string]string true "状态更新请求"
+// @Success 200 {object} common.Response
+// @Router /api/v1/projects/{id}/prds/{prd_id}/status [put]
+func (h *PRDHandler) UpdatePRDStatus(c *gin.Context) {
+	prdID := c.Param("prd_id")
+
+	var req struct {
+		Status string `json:"status" binding:"required,oneof=draft published archived"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, common.ErrorResponse(
+			common.CodeBadRequest,
+			"Invalid request parameters",
+			err.Error(),
+		))
+		return
+	}
+
+	doc, err := h.service.UpdatePRDStatus(prdID, req.Status)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, common.ErrorResponse(
+			common.CodeInternalServerError,
+			"Failed to update PRD status",
+			err.Error(),
+		))
+		return
+	}
+
+	c.JSON(http.StatusOK, common.SuccessResponse(doc))
+}
+
+// PublishPRD 发布 PRD
+// @Summary 发布 PRD
+// @Tags PRD 管理
+// @Produce json
+// @Param id path string true "项目ID"
+// @Param prd_id path string true "PRD ID"
+// @Success 200 {object} common.Response
+// @Router /api/v1/projects/{id}/prds/{prd_id}/publish [post]
+func (h *PRDHandler) PublishPRD(c *gin.Context) {
+	prdID := c.Param("prd_id")
+
+	doc, err := h.service.PublishPRD(prdID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, common.ErrorResponse(
+			common.CodeInternalServerError,
+			"Failed to publish PRD",
+			err.Error(),
+		))
+		return
+	}
+
+	c.JSON(http.StatusOK, common.SuccessResponse(doc))
+}
+
+// ArchivePRD 归档 PRD
+// @Summary 归档 PRD
+// @Tags PRD 管理
+// @Produce json
+// @Param id path string true "项目ID"
+// @Param prd_id path string true "PRD ID"
+// @Success 200 {object} common.Response
+// @Router /api/v1/projects/{id}/prds/{prd_id}/archive [post]
+func (h *PRDHandler) ArchivePRD(c *gin.Context) {
+	prdID := c.Param("prd_id")
+
+	doc, err := h.service.ArchivePRD(prdID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, common.ErrorResponse(
+			common.CodeInternalServerError,
+			"Failed to archive PRD",
+			err.Error(),
+		))
+		return
+	}
+
+	c.JSON(http.StatusOK, common.SuccessResponse(doc))
+}

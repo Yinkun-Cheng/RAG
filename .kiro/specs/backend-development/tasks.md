@@ -95,10 +95,10 @@
 - [x] 4.2.3 实现获取特定版本内容 API（GET /api/v1/projects/:id/prds/:prd_id/versions/:version）✅
 - [x] 4.2.4 实现版本对比 API（GET /api/v1/projects/:id/prds/:prd_id/versions/compare）✅
 
-### 4.3 PRD 状态管理
-- [ ] 4.3.1 实现更新 PRD 状态 API（PUT /api/v1/projects/:project_id/prds/:id/status）
-- [ ] 4.3.2 实现发布 PRD API（POST /api/v1/projects/:project_id/prds/:id/publish）
-- [ ] 4.3.3 实现归档 PRD API（POST /api/v1/projects/:project_id/prds/:id/archive）
+### 4.3 PRD 状态管理 ✅
+- [x] 4.3.1 实现更新 PRD 状态 API（PUT /api/v1/projects/:id/prds/:prd_id/status）✅
+- [x] 4.3.2 实现发布 PRD API（POST /api/v1/projects/:id/prds/:prd_id/publish）✅
+- [x] 4.3.3 实现归档 PRD API（POST /api/v1/projects/:id/prds/:prd_id/archive）✅
 
 ### 4.4 PRD 标签关联
 - [ ] 4.4.1 实现添加 PRD 标签 API（POST /api/v1/projects/:project_id/prds/:id/tags）
@@ -302,10 +302,10 @@
 ## 进度追踪
 
 - **总任务数**: 150+
-- **已完成**: 63 ✅
+- **已完成**: 66 ✅
 - **进行中**: 0
-- **待开始**: 87+
-- **完成度**: 42%
+- **待开始**: 84+
+- **完成度**: 44%
 
 ### 最新进度（2025-01-20）
 ✅ **阶段 1 完成** - 基础设施搭建

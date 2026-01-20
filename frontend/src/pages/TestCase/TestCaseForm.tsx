@@ -9,14 +9,12 @@ import {
   message,
   Divider,
   List,
-  Upload,
 } from 'antd';
 import {
   ArrowLeftOutlined,
   SaveOutlined,
   PlusOutlined,
   DeleteOutlined,
-  UploadOutlined,
 } from '@ant-design/icons';
 import TagSelect from '../../components/TagSelect';
 import {
@@ -35,8 +33,8 @@ export default function TestCaseForm() {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [steps, setSteps] = useState<
-    Array<{ order: number; description: string; screenshots: string[] }>
-  >([{ order: 1, description: '', screenshots: [] }]);
+    Array<{ order: number; description: string; testData?: string; expected?: string }>
+  >([{ order: 1, description: '', testData: '', expected: '' }]);
 
   const isEdit = !!id;
   const versionFromUrl = searchParams.get('version');
@@ -84,7 +82,7 @@ export default function TestCaseForm() {
   const projectVersions = mockAppVersions.filter(v => v.projectId === projectId);
 
   const handleAddStep = () => {
-    setSteps([...steps, { order: steps.length + 1, description: '', screenshots: [] }]);
+    setSteps([...steps, { order: steps.length + 1, description: '', testData: '', expected: '' }]);
   };
 
   const handleRemoveStep = (index: number) => {
@@ -96,9 +94,9 @@ export default function TestCaseForm() {
     setSteps(newSteps);
   };
 
-  const handleStepChange = (index: number, description: string) => {
+  const handleStepChange = (index: number, field: string, value: string) => {
     const newSteps = [...steps];
-    newSteps[index].description = description;
+    (newSteps[index] as any)[field] = value;
     setSteps(newSteps);
   };
 
@@ -262,38 +260,50 @@ export default function TestCaseForm() {
                 <List.Item
                   key={index}
                   className="border rounded p-4 mb-3"
-                  extra={
-                    steps.length > 1 && (
-                      <Button
-                        type="text"
-                        danger
-                        icon={<DeleteOutlined />}
-                        onClick={() => handleRemoveStep(index)}
-                      >
-                        删除
-                      </Button>
-                    )
-                  }
                 >
                   <div className="flex-1">
-                    <div className="font-medium mb-2">步骤 {step.order}</div>
-                    <TextArea
-                      value={step.description}
-                      onChange={e => handleStepChange(index, e.target.value)}
-                      placeholder="请描述测试步骤"
-                      rows={2}
-                    />
-                    <div className="mt-2">
-                      <Upload
-                        listType="picture-card"
-                        maxCount={5}
-                        beforeUpload={() => false}
-                      >
-                        <div>
-                          <UploadOutlined />
-                          <div className="mt-2">上传截图</div>
-                        </div>
-                      </Upload>
+                    <div className="flex justify-between items-center mb-2">
+                      <div className="font-medium">步骤 {step.order}</div>
+                      {steps.length > 1 && (
+                        <Button
+                          type="text"
+                          danger
+                          size="small"
+                          icon={<DeleteOutlined />}
+                          onClick={() => handleRemoveStep(index)}
+                        >
+                          删除
+                        </Button>
+                      )}
+                    </div>
+                    
+                    <div className="mb-3">
+                      <label className="text-sm text-gray-600 mb-1 block">操作描述 *</label>
+                      <TextArea
+                        value={step.description}
+                        onChange={e => handleStepChange(index, 'description', e.target.value)}
+                        placeholder="请描述测试步骤的操作"
+                        rows={2}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-sm text-gray-600 mb-1 block">测试数据</label>
+                        <Input
+                          value={step.testData}
+                          onChange={e => handleStepChange(index, 'testData', e.target.value)}
+                          placeholder="输入测试数据（可选）"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm text-gray-600 mb-1 block">预期结果</label>
+                        <Input
+                          value={step.expected}
+                          onChange={e => handleStepChange(index, 'expected', e.target.value)}
+                          placeholder="该步骤的预期结果（可选）"
+                        />
+                      </div>
                     </div>
                   </div>
                 </List.Item>

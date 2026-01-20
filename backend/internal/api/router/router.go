@@ -8,6 +8,7 @@ import (
 	prdService "rag-backend/internal/service/prd"
 	projectService "rag-backend/internal/service/project"
 	tagService "rag-backend/internal/service/tag"
+	testcaseService "rag-backend/internal/service/testcase"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -21,18 +22,22 @@ func SetupRouter(router *gin.Engine, db *gorm.DB) {
 	tagRepo := postgres.NewTagRepository(db)
 	prdRepo := postgres.NewPRDRepository(db)
 	prdVersionRepo := postgres.NewPRDVersionRepository(db)
+	testCaseRepo := postgres.NewTestCaseRepository(db)
+	testStepRepo := postgres.NewTestStepRepository(db)
 
 	// 创建服务
 	projectSvc := projectService.NewService(projectRepo)
 	moduleSvc := moduleService.NewService(moduleRepo)
 	tagSvc := tagService.NewService(tagRepo)
 	prdSvc := prdService.NewService(prdRepo, prdVersionRepo)
+	testCaseSvc := testcaseService.NewService(testCaseRepo, testStepRepo)
 
 	// 创建处理器
 	projectHandler := handler.NewProjectHandler(projectSvc)
 	moduleHandler := handler.NewModuleHandler(moduleSvc)
 	tagHandler := handler.NewTagHandler(tagSvc)
 	prdHandler := handler.NewPRDHandler(prdSvc)
+	testCaseHandler := handler.NewTestCaseHandler(testCaseSvc)
 
 	// API v1 路由组
 	v1 := router.Group("/api/v1")
@@ -99,6 +104,21 @@ func SetupRouter(router *gin.Engine, db *gorm.DB) {
 				// PRD 标签管理
 				prds.POST("/:prd_id/tags", prdHandler.AddPRDTag)
 				prds.DELETE("/:prd_id/tags/:tag_id", prdHandler.RemovePRDTag)
+			}
+
+			// 测试用例管理路由
+			testcases := projectRoutes.Group("/testcases")
+			{
+				testcases.GET("", testCaseHandler.ListTestCases)
+				testcases.POST("", testCaseHandler.CreateTestCase)
+				testcases.POST("/batch-delete", testCaseHandler.BatchDeleteTestCases)
+				testcases.GET("/:testcase_id", testCaseHandler.GetTestCase)
+				testcases.PUT("/:testcase_id", testCaseHandler.UpdateTestCase)
+				testcases.DELETE("/:testcase_id", testCaseHandler.DeleteTestCase)
+				
+				// 测试用例标签管理
+				testcases.POST("/:testcase_id/tags", testCaseHandler.AddTestCaseTag)
+				testcases.DELETE("/:testcase_id/tags/:tag_id", testCaseHandler.RemoveTestCaseTag)
 			}
 		}
 	}

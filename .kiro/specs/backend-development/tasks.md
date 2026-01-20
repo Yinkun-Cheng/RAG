@@ -106,38 +106,38 @@
 
 ## 阶段 5：测试用例管理 API
 
-### 5.1 测试用例基础 CRUD
-- [ ] 5.1.1 实现创建测试用例 API（POST /api/v1/projects/:project_id/testcases）
-- [ ] 5.1.2 实现获取测试用例列表 API（GET /api/v1/projects/:project_id/testcases）
-  - [ ] 支持分页
-  - [ ] 支持按 PRD 筛选
-  - [ ] 支持按模块筛选
-  - [ ] 支持按优先级筛选
-  - [ ] 支持按类型筛选
-  - [ ] 支持按状态筛选
-  - [ ] 支持按标签筛选
-  - [ ] 支持关键词搜索
-- [ ] 5.1.3 实现获取测试用例详情 API（GET /api/v1/projects/:project_id/testcases/:id）
-- [ ] 5.1.4 实现更新测试用例 API（PUT /api/v1/projects/:project_id/testcases/:id）
-- [ ] 5.1.5 实现删除测试用例 API（DELETE /api/v1/projects/:project_id/testcases/:id）
-- [ ] 5.1.6 实现批量删除测试用例 API（POST /api/v1/projects/:project_id/testcases/batch-delete）
+### 5.1 测试用例基础 CRUD ✅
+- [x] 5.1.1 实现创建测试用例 API（POST /api/v1/projects/:id/testcases）✅
+- [x] 5.1.2 实现获取测试用例列表 API（GET /api/v1/projects/:id/testcases）✅
+  - [x] 支持分页 ✅
+  - [x] 支持按 PRD 筛选 ✅
+  - [x] 支持按模块筛选 ✅
+  - [x] 支持按优先级筛选 ✅
+  - [x] 支持按类型筛选 ✅
+  - [x] 支持按状态筛选 ✅
+  - [x] 支持按标签筛选 ✅
+  - [x] 支持关键词搜索 ✅
+- [x] 5.1.3 实现获取测试用例详情 API（GET /api/v1/projects/:id/testcases/:testcase_id）✅
+- [x] 5.1.4 实现更新测试用例 API（PUT /api/v1/projects/:id/testcases/:testcase_id）✅
+- [x] 5.1.5 实现删除测试用例 API（DELETE /api/v1/projects/:id/testcases/:testcase_id）✅
+- [x] 5.1.6 实现批量删除测试用例 API（POST /api/v1/projects/:id/testcases/batch-delete）✅
 
-### 5.2 测试步骤管理
-- [ ] 5.2.1 实现创建测试步骤功能（随测试用例创建）
-- [ ] 5.2.2 实现更新测试步骤功能（随测试用例更新）
-- [ ] 5.2.3 实现删除测试步骤功能（随测试用例删除）
-- [ ] 5.2.4 实现步骤排序功能
+### 5.2 测试步骤管理 ✅
+- [x] 5.2.1 实现创建测试步骤功能（随测试用例创建）✅
+- [x] 5.2.2 实现更新测试步骤功能（随测试用例更新）✅
+- [x] 5.2.3 实现删除测试步骤功能（随测试用例删除）✅
+- [x] 5.2.4 实现步骤排序功能 ✅
 
-### 5.3 测试用例标签关联
-- [ ] 5.3.1 实现添加测试用例标签 API（POST /api/v1/projects/:project_id/testcases/:id/tags）
-- [ ] 5.3.2 实现删除测试用例标签 API（DELETE /api/v1/projects/:project_id/testcases/:id/tags/:tag_id）
+### 5.3 测试用例标签关联 ✅
+- [x] 5.3.1 实现添加测试用例标签 API（POST /api/v1/projects/:id/testcases/:testcase_id/tags）✅
+- [x] 5.3.2 实现删除测试用例标签 API（DELETE /api/v1/projects/:id/testcases/:testcase_id/tags/:tag_id）✅
 
 ### 5.4 测试用例版本管理
 - [ ] 5.4.1 实现创建测试用例版本功能
-- [ ] 5.4.2 实现获取测试用例版本列表 API（GET /api/v1/projects/:project_id/testcases/:id/versions）
-- [ ] 5.4.3 实现获取特定版本内容 API（GET /api/v1/projects/:project_id/testcases/:id/versions/:version）
+- [ ] 5.4.2 实现获取测试用例版本列表 API（GET /api/v1/projects/:id/testcases/:testcase_id/versions）
+- [ ] 5.4.3 实现获取特定版本内容 API（GET /api/v1/projects/:id/testcases/:testcase_id/versions/:version）
 
-## 阶段 6：文件上传功能
+<!-- ## 阶段 6：文件上传功能
 
 ### 6.1 文件上传基础
 - [ ] 6.1.1 实现文件存储目录初始化
@@ -154,7 +154,7 @@
 
 ### 6.3 文件清理
 - [ ] 6.3.1 实现孤立文件识别
-- [ ] 6.3.2 实现定时清理任务
+- [ ] 6.3.2 实现定时清理任务 -->
 
 ## 阶段 7：统计功能 API
 
@@ -302,20 +302,22 @@
 ## 进度追踪
 
 - **总任务数**: 150+
-- **已完成**: 66 ✅
+- **已完成**: 88 ✅
 - **进行中**: 0
-- **待开始**: 84+
-- **完成度**: 44%
+- **待开始**: 62+
+- **完成度**: 59%
 
-### 最新进度（2025-01-20）
+### 最新进度（2026-01-20）
 ✅ **阶段 1 完成** - 基础设施搭建
-✅ **阶段 2.1 完成** - 项目管理 API
-✅ **阶段 2.2 完成** - 模块管理 API
-✅ **阶段 3.1 完成** - 标签管理 API
-✅ **阶段 4.1 完成** - PRD 文档管理 API
-- 实现了完整的 PRD CRUD API
+✅ **阶段 2 完成** - 项目与模块管理 API
+✅ **阶段 3 完成** - 标签管理 API
+✅ **阶段 4 完成** - PRD 文档管理 API
+✅ **阶段 5.1-5.3 完成** - 测试用例管理 API（基础 CRUD、步骤管理、标签关联）
+- 实现了完整的测试用例 CRUD API
+- 实现了测试步骤的创建、更新、删除功能
 - 实现了复杂的列表查询（分页、多条件筛选、关键词搜索）
-- 支持按模块、状态、App版本、标签筛选
+- 支持按 PRD、模块、优先级、类型、状态、App版本、标签筛选
+- 支持批量删除测试用例
 - 内容更新时自动版本号递增
 - 所有 API 测试通过
 

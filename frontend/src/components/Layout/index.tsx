@@ -40,6 +40,11 @@ export default function Layout() {
       icon: <ImportOutlined />,
       label: '导入',
     },
+    {
+      key: '/tags',
+      icon: <FileTextOutlined />,
+      label: '标签管理',
+    },
   ];
 
   return (

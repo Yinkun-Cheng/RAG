@@ -12,12 +12,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
     "@tanstack/react-query": "^5.17.9",
     "antd": "^5.12.8",
     "axios": "^1.6.5",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-markdown": "^10.1.0",
     "react-router-dom": "^6.21.1",
+    "rehype-highlight": "^7.0.2",
     "zustand": "^4.4.7"
   },
   "devDependencies": {

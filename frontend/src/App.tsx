@@ -5,9 +5,12 @@ import zhCN from 'antd/locale/zh_CN';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import PRD from './pages/PRD';
+import PRDDetail from './pages/PRD/PRDDetail';
+import PRDForm from './pages/PRD/PRDForm';
 import TestCase from './pages/TestCase';
 import Search from './pages/Search';
 import Import from './pages/Import';
+import TagManagement from './pages/TagManagement';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,10 +29,16 @@ function App() {
           <Routes>
             <Route path="/" element={<Layout />}>
               <Route index element={<Dashboard />} />
-              <Route path="prd" element={<PRD />} />
+              <Route path="prd">
+                <Route index element={<PRD />} />
+                <Route path="new" element={<PRDForm />} />
+                <Route path=":id" element={<PRDDetail />} />
+                <Route path=":id/edit" element={<PRDForm />} />
+              </Route>
               <Route path="testcase" element={<TestCase />} />
               <Route path="search" element={<Search />} />
               <Route path="import" element={<Import />} />
+              <Route path="tags" element={<TagManagement />} />
             </Route>
           </Routes>
         </BrowserRouter>

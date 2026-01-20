@@ -3,7 +3,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ConfigProvider } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import Layout from './components/Layout';
+import ProjectList from './pages/ProjectList';
 import Dashboard from './pages/Dashboard';
+import ModuleManagement from './pages/ModuleManagement';
 import PRD from './pages/PRD';
 import PRDDetail from './pages/PRD/PRDDetail';
 import PRDForm from './pages/PRD/PRDForm';
@@ -27,8 +29,13 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Layout />}>
+            {/* 项目选择页面 */}
+            <Route path="/" element={<ProjectList />} />
+            
+            {/* 项目内页面 */}
+            <Route path="/project/:projectId" element={<Layout />}>
               <Route index element={<Dashboard />} />
+              <Route path="modules" element={<ModuleManagement />} />
               <Route path="prd">
                 <Route index element={<PRD />} />
                 <Route path="new" element={<PRDForm />} />

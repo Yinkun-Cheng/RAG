@@ -1,5 +1,14 @@
 // Mock 数据
 
+export interface Project {
+  id: string;
+  name: string;
+  description: string;
+  createdAt: string;
+  prdCount: number;
+  testCaseCount: number;
+}
+
 export interface Module {
   id: string;
   name: string;
@@ -16,6 +25,7 @@ export interface Tag {
 
 export interface AppVersion {
   id: string;
+  projectId: string;
   version: string;
   description: string;
   createdAt: string;
@@ -24,6 +34,8 @@ export interface AppVersion {
 
 export interface PRD {
   id: string;
+  projectId: string;
+  projectName: string;
   title: string;
   appVersionId: string;
   appVersion: string;
@@ -41,6 +53,8 @@ export interface PRD {
 
 export interface TestCase {
   id: string;
+  projectId: string;
+  projectName: string;
   title: string;
   moduleId: string;
   moduleName: string;
@@ -62,10 +76,23 @@ export interface TestStep {
   screenshots: string[];
 }
 
+// Mock 项目数据
+export const mockProjects: Project[] = [
+  {
+    id: 'proj-1',
+    name: '电商平台',
+    description: '电商平台核心功能开发',
+    createdAt: '2025-01-01',
+    prdCount: 6,
+    testCaseCount: 3,
+  },
+];
+
 // Mock App 版本数据
 export const mockAppVersions: AppVersion[] = [
   {
     id: 'v1',
+    projectId: 'proj-1',
     version: 'v1.0.0',
     description: '初始版本 - 基础功能',
     createdAt: '2025-01-01',
@@ -73,6 +100,7 @@ export const mockAppVersions: AppVersion[] = [
   },
   {
     id: 'v2',
+    projectId: 'proj-1',
     version: 'v1.1.0',
     description: '功能优化版本',
     createdAt: '2025-01-10',
@@ -80,6 +108,7 @@ export const mockAppVersions: AppVersion[] = [
   },
   {
     id: 'v3',
+    projectId: 'proj-1',
     version: 'v2.0.0',
     description: '架构升级版本',
     createdAt: '2025-01-15',
@@ -135,6 +164,8 @@ export const mockTags: Tag[] = [
 export const mockPRDs: PRD[] = [
   {
     id: '1',
+    projectId: 'proj-1',
+    projectName: '电商平台',
     title: '用户注册功能需求文档',
     appVersionId: 'v1',
     appVersion: 'v1.0.0',
@@ -164,6 +195,8 @@ export const mockPRDs: PRD[] = [
   },
   {
     id: '2',
+    projectId: 'proj-1',
+    projectName: '电商平台',
     title: '用户登录功能需求文档',
     appVersionId: 'v1',
     appVersion: 'v1.0.0',
@@ -188,6 +221,8 @@ export const mockPRDs: PRD[] = [
   },
   {
     id: '3',
+    projectId: 'proj-1',
+    projectName: '电商平台',
     title: '个人资料管理需求文档',
     appVersionId: 'v1',
     appVersion: 'v1.0.0',
@@ -205,6 +240,8 @@ export const mockPRDs: PRD[] = [
   },
   {
     id: '4',
+    projectId: 'proj-1',
+    projectName: '电商平台',
     title: '订单支付流程优化',
     appVersionId: 'v2',
     appVersion: 'v1.1.0',
@@ -229,6 +266,8 @@ export const mockPRDs: PRD[] = [
   },
   {
     id: '5',
+    projectId: 'proj-1',
+    projectName: '电商平台',
     title: '商品搜索功能',
     appVersionId: 'v2',
     appVersion: 'v1.1.0',
@@ -246,6 +285,8 @@ export const mockPRDs: PRD[] = [
   },
   {
     id: '6',
+    projectId: 'proj-1',
+    projectName: '电商平台',
     title: '新架构设计文档',
     appVersionId: 'v3',
     appVersion: 'v2.0.0',
@@ -267,6 +308,8 @@ export const mockPRDs: PRD[] = [
 export const mockTestCases: TestCase[] = [
   {
     id: '1',
+    projectId: 'proj-1',
+    projectName: '电商平台',
     title: '用户注册-手机号注册成功',
     moduleId: '1-1',
     moduleName: '用户注册',
@@ -319,6 +362,8 @@ export const mockTestCases: TestCase[] = [
   },
   {
     id: '2',
+    projectId: 'proj-1',
+    projectName: '电商平台',
     title: '用户登录-密码错误',
     moduleId: '1-2',
     moduleName: '用户登录',
@@ -359,6 +404,8 @@ export const mockTestCases: TestCase[] = [
   },
   {
     id: '3',
+    projectId: 'proj-1',
+    projectName: '电商平台',
     title: '订单创建-正常流程',
     moduleId: '2-1',
     moduleName: '创建订单',

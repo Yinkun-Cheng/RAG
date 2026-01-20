@@ -25,7 +25,7 @@ import {
   CheckCircleOutlined,
   ClockCircleOutlined,
 } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import type { ColumnsType } from 'antd/es/table';
 import { mockPRDs, mockAppVersions, mockModules, mockTags, PRD } from '../../mock/data';
 
@@ -34,6 +34,7 @@ const { Panel } = Collapse;
 
 export default function PRDList() {
   const navigate = useNavigate();
+  const { projectId } = useParams<{ projectId: string }>();
   const [searchText, setSearchText] = useState('');
   const [selectedModule, setSelectedModule] = useState<string | undefined>();
   const [selectedStatus, setSelectedStatus] = useState<string | undefined>();
@@ -83,9 +84,13 @@ export default function PRDList() {
     },
   };
 
+  // 过滤当前项目的 App 版本和 PRD
+  const projectVersions = mockAppVersions.filter(v => v.projectId === projectId);
+  const projectPRDs = mockPRDs.filter(p => p.projectId === projectId);
+
   // 按 App 版本分组 PRD
-  const groupedPRDs = mockAppVersions.map(version => {
-    const prds = mockPRDs.filter(prd => {
+  const groupedPRDs = projectVersions.map(version => {
+    const prds = projectPRDs.filter(prd => {
       const matchVersion = prd.appVersionId === version.id;
       const matchSearch =
         !searchText || prd.title.toLowerCase().includes(searchText.toLowerCase());
@@ -108,7 +113,7 @@ export default function PRDList() {
         <Space>
           <FileTextOutlined />
           <a
-            onClick={() => navigate(`/prd/${record.id}`)}
+            onClick={() => navigate(`/project/${projectId}/prd/${record.id}`)}
             className="text-blue-600 hover:underline"
           >
             {title}
@@ -194,7 +199,7 @@ export default function PRDList() {
             type="link"
             size="small"
             icon={<EyeOutlined />}
-            onClick={() => navigate(`/prd/${record.id}`)}
+            onClick={() => navigate(`/project/${projectId}/prd/${record.id}`)}
           >
             查看
           </Button>
@@ -202,7 +207,7 @@ export default function PRDList() {
             type="link"
             size="small"
             icon={<EditOutlined />}
-            onClick={() => navigate(`/prd/${record.id}/edit`)}
+            onClick={() => navigate(`/project/${projectId}/prd/${record.id}/edit`)}
           >
             编辑
           </Button>
@@ -288,7 +293,7 @@ export default function PRDList() {
           <Button
             type="primary"
             icon={<PlusOutlined />}
-            onClick={() => navigate('/prd/new')}
+            onClick={() => navigate(`/project/${projectId}/prd/new`)}
           >
             新建 PRD
           </Button>
@@ -346,7 +351,7 @@ export default function PRDList() {
 
       {/* 按版本分组展示 */}
       <Collapse
-        defaultActiveKey={mockAppVersions.map(v => v.id)}
+        defaultActiveKey={projectVersions.map(v => v.id)}
         expandIconPosition="start"
       >
         {groupedPRDs.map(({ version, prds }) => (

@@ -4,7 +4,6 @@ import (
 	"os"
 
 	"go.uber.org/zap"
-	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
@@ -97,4 +96,9 @@ func Fatal(msg string, fields ...zap.Field) {
 		Log.Fatal(msg, fields...)
 	}
 	os.Exit(1)
+}
+
+// Logger returns the global logger instance
+func Logger() *zap.Logger {
+	return Log
 }

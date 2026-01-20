@@ -7,6 +7,7 @@ import (
 	"syscall"
 
 	"rag-backend/internal/pkg/config"
+	"rag-backend/internal/pkg/database"
 	"rag-backend/internal/pkg/logger"
 
 	"github.com/gin-gonic/gin"
@@ -32,6 +33,32 @@ func main() {
 		zap.String("mode", cfg.Server.Mode),
 		zap.Int("port", cfg.Server.Port))
 
+	// Initialize database connection
+	dbConfig := database.PostgresConfig{
+		Host:     cfg.Database.Postgres.Host,
+		Port:     cfg.Database.Postgres.Port,
+		User:     cfg.Database.Postgres.User,
+		Password: cfg.Database.Postgres.Password,
+		DBName:   cfg.Database.Postgres.DBName,
+		SSLMode:  cfg.Database.Postgres.SSLMode,
+	}
+
+	db, err := database.NewPostgresDB(dbConfig, logger.Logger())
+	if err != nil {
+		logger.Fatal("Failed to connect to database", zap.Error(err))
+	}
+	defer database.Close(db)
+
+	// Database health check
+	if err := database.HealthCheck(db); err != nil {
+		logger.Fatal("Database health check failed", zap.Error(err))
+	}
+
+	// Auto migrate database tables
+	if err := database.AutoMigrate(db, logger.Logger()); err != nil {
+		logger.Fatal("Database auto migration failed", zap.Error(err))
+	}
+
 	// Set Gin mode
 	if cfg.Server.Mode == "release" {
 		gin.SetMode(gin.ReleaseMode)
@@ -44,9 +71,24 @@ func main() {
 
 	// Health check endpoint
 	router.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"status":  "healthy",
-			"message": "RAG Backend is running",
+		// Check database health
+		dbHealthy := true
+		if err := database.HealthCheck(db); err != nil {
+			dbHealthy = false
+			logger.Error("Database health check failed", zap.Error(err))
+		}
+
+		status := "healthy"
+		httpCode := 200
+		if !dbHealthy {
+			status = "unhealthy"
+			httpCode = 503
+		}
+
+		c.JSON(httpCode, gin.H{
+			"status":   status,
+			"message":  "RAG Backend is running",
+			"database": dbHealthy,
 		})
 	})
 

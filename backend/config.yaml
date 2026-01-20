@@ -6,8 +6,8 @@ database:
   postgres:
     host: localhost
     port: 5432
-    user: rag_user
-    password: rag_password
+    user: postgres
+    password: root
     dbname: rag_db
     sslmode: disable
   

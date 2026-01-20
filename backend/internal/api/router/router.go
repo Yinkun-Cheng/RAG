@@ -5,6 +5,7 @@ import (
 	"rag-backend/internal/api/middleware"
 	"rag-backend/internal/repository/postgres"
 	moduleService "rag-backend/internal/service/module"
+	prdService "rag-backend/internal/service/prd"
 	projectService "rag-backend/internal/service/project"
 	tagService "rag-backend/internal/service/tag"
 
@@ -18,16 +19,19 @@ func SetupRouter(router *gin.Engine, db *gorm.DB) {
 	projectRepo := postgres.NewProjectRepository(db)
 	moduleRepo := postgres.NewModuleRepository(db)
 	tagRepo := postgres.NewTagRepository(db)
+	prdRepo := postgres.NewPRDRepository(db)
 
 	// 创建服务
 	projectSvc := projectService.NewService(projectRepo)
 	moduleSvc := moduleService.NewService(moduleRepo)
 	tagSvc := tagService.NewService(tagRepo)
+	prdSvc := prdService.NewService(prdRepo)
 
 	// 创建处理器
 	projectHandler := handler.NewProjectHandler(projectSvc)
 	moduleHandler := handler.NewModuleHandler(moduleSvc)
 	tagHandler := handler.NewTagHandler(tagSvc)
+	prdHandler := handler.NewPRDHandler(prdSvc)
 
 	// API v1 路由组
 	v1 := router.Group("/api/v1")
@@ -70,6 +74,16 @@ func SetupRouter(router *gin.Engine, db *gorm.DB) {
 				tags.PUT("/:tag_id", tagHandler.UpdateTag)
 				tags.DELETE("/:tag_id", tagHandler.DeleteTag)
 				tags.GET("/:tag_id/usage", tagHandler.GetTagUsage)
+			}
+
+			// PRD 文档管理路由
+			prds := projectRoutes.Group("/prds")
+			{
+				prds.GET("", prdHandler.ListPRDs)
+				prds.POST("", prdHandler.CreatePRD)
+				prds.GET("/:prd_id", prdHandler.GetPRD)
+				prds.PUT("/:prd_id", prdHandler.UpdatePRD)
+				prds.DELETE("/:prd_id", prdHandler.DeletePRD)
 			}
 		}
 	}

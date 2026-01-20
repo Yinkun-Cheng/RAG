@@ -76,18 +76,18 @@
 
 ## 阶段 4：PRD 文档管理 API
 
-### 4.1 PRD 基础 CRUD
-- [ ] 4.1.1 实现创建 PRD API（POST /api/v1/projects/:project_id/prds）
-- [ ] 4.1.2 实现获取 PRD 列表 API（GET /api/v1/projects/:project_id/prds）
-  - [ ] 支持分页
-  - [ ] 支持按模块筛选
-  - [ ] 支持按状态筛选
-  - [ ] 支持按 App 版本筛选
-  - [ ] 支持按标签筛选
-  - [ ] 支持关键词搜索
-- [ ] 4.1.3 实现获取 PRD 详情 API（GET /api/v1/projects/:project_id/prds/:id）
-- [ ] 4.1.4 实现更新 PRD API（PUT /api/v1/projects/:project_id/prds/:id）
-- [ ] 4.1.5 实现删除 PRD API（DELETE /api/v1/projects/:project_id/prds/:id）
+### 4.1 PRD 基础 CRUD ✅
+- [x] 4.1.1 实现创建 PRD API（POST /api/v1/projects/:id/prds）✅
+- [x] 4.1.2 实现获取 PRD 列表 API（GET /api/v1/projects/:id/prds）✅
+  - [x] 支持分页 ✅
+  - [x] 支持按模块筛选 ✅
+  - [x] 支持按状态筛选 ✅
+  - [x] 支持按 App 版本筛选 ✅
+  - [x] 支持按标签筛选 ✅
+  - [x] 支持关键词搜索 ✅
+- [x] 4.1.3 实现获取 PRD 详情 API（GET /api/v1/projects/:id/prds/:prd_id）✅
+- [x] 4.1.4 实现更新 PRD API（PUT /api/v1/projects/:id/prds/:prd_id）✅
+- [x] 4.1.5 实现删除 PRD API（DELETE /api/v1/projects/:id/prds/:prd_id）✅
 
 ### 4.2 PRD 版本管理
 - [ ] 4.2.1 实现创建 PRD 版本功能
@@ -302,19 +302,21 @@
 ## 进度追踪
 
 - **总任务数**: 150+
-- **已完成**: 52 ✅
+- **已完成**: 59 ✅
 - **进行中**: 0
-- **待开始**: 98+
-- **完成度**: 35%
+- **待开始**: 91+
+- **完成度**: 39%
 
 ### 最新进度（2025-01-20）
 ✅ **阶段 1 完成** - 基础设施搭建
 ✅ **阶段 2.1 完成** - 项目管理 API
 ✅ **阶段 2.2 完成** - 模块管理 API
 ✅ **阶段 3.1 完成** - 标签管理 API
-- 实现了完整的标签 CRUD API
-- 实现了标签使用统计功能
-- 支持删除前检查标签使用情况
+✅ **阶段 4.1 完成** - PRD 文档管理 API
+- 实现了完整的 PRD CRUD API
+- 实现了复杂的列表查询（分页、多条件筛选、关键词搜索）
+- 支持按模块、状态、App版本、标签筛选
+- 内容更新时自动版本号递增
 - 所有 API 测试通过
 
 ### 下一步计划

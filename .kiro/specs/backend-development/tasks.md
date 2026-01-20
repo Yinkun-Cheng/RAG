@@ -100,9 +100,9 @@
 - [x] 4.3.2 实现发布 PRD API（POST /api/v1/projects/:id/prds/:prd_id/publish）✅
 - [x] 4.3.3 实现归档 PRD API（POST /api/v1/projects/:id/prds/:prd_id/archive）✅
 
-### 4.4 PRD 标签关联
-- [ ] 4.4.1 实现添加 PRD 标签 API（POST /api/v1/projects/:project_id/prds/:id/tags）
-- [ ] 4.4.2 实现删除 PRD 标签 API（DELETE /api/v1/projects/:project_id/prds/:id/tags/:tag_id）
+### 4.4 PRD 标签关联 ✅
+- [x] 4.4.1 实现添加 PRD 标签 API（POST /api/v1/projects/:id/prds/:prd_id/tags）✅
+- [x] 4.4.2 实现删除 PRD 标签 API（DELETE /api/v1/projects/:id/prds/:prd_id/tags/:tag_id）✅
 
 ## 阶段 5：测试用例管理 API
 

@@ -371,3 +371,69 @@ func (h *PRDHandler) ArchivePRD(c *gin.Context) {
 
 	c.JSON(http.StatusOK, common.SuccessResponse(doc))
 }
+
+// AddPRDTag 为 PRD 添加标签
+// @Summary 为 PRD 添加标签
+// @Tags PRD 管理
+// @Accept json
+// @Produce json
+// @Param id path string true "项目ID"
+// @Param prd_id path string true "PRD ID"
+// @Param request body map[string]string true "标签ID"
+// @Success 200 {object} common.Response
+// @Router /api/v1/projects/{id}/prds/{prd_id}/tags [post]
+func (h *PRDHandler) AddPRDTag(c *gin.Context) {
+	prdID := c.Param("prd_id")
+
+	var req struct {
+		TagID string `json:"tag_id" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, common.ErrorResponse(
+			common.CodeBadRequest,
+			"Invalid request parameters",
+			err.Error(),
+		))
+		return
+	}
+
+	if err := h.service.AddPRDTag(prdID, req.TagID); err != nil {
+		c.JSON(http.StatusInternalServerError, common.ErrorResponse(
+			common.CodeInternalServerError,
+			"Failed to add tag to PRD",
+			err.Error(),
+		))
+		return
+	}
+
+	c.JSON(http.StatusOK, common.SuccessResponse(gin.H{
+		"message": "Tag added successfully",
+	}))
+}
+
+// RemovePRDTag 移除 PRD 的标签
+// @Summary 移除 PRD 的标签
+// @Tags PRD 管理
+// @Produce json
+// @Param id path string true "项目ID"
+// @Param prd_id path string true "PRD ID"
+// @Param tag_id path string true "标签ID"
+// @Success 200 {object} common.Response
+// @Router /api/v1/projects/{id}/prds/{prd_id}/tags/{tag_id} [delete]
+func (h *PRDHandler) RemovePRDTag(c *gin.Context) {
+	prdID := c.Param("prd_id")
+	tagID := c.Param("tag_id")
+
+	if err := h.service.RemovePRDTag(prdID, tagID); err != nil {
+		c.JSON(http.StatusInternalServerError, common.ErrorResponse(
+			common.CodeInternalServerError,
+			"Failed to remove tag from PRD",
+			err.Error(),
+		))
+		return
+	}
+
+	c.JSON(http.StatusOK, common.SuccessResponse(gin.H{
+		"message": "Tag removed successfully",
+	}))
+}

@@ -25,6 +25,8 @@ type Service interface {
 	UpdatePRDStatus(id string, status string) (*prd.PRDDocument, error)
 	PublishPRD(id string) (*prd.PRDDocument, error)
 	ArchivePRD(id string) (*prd.PRDDocument, error)
+	AddPRDTag(prdID, tagID string) error
+	RemovePRDTag(prdID, tagID string) error
 }
 
 type service struct {
@@ -425,4 +427,52 @@ func (s *service) ArchivePRD(id string) (*prd.PRDDocument, error) {
 	}
 
 	return s.repo.GetByID(doc.ID)
+}
+
+// AddPRDTag 为 PRD 添加标签
+func (s *service) AddPRDTag(prdID, tagID string) error {
+	// 检查 PRD 是否存在
+	_, err := s.repo.GetByID(prdID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("PRD not found")
+		}
+		return err
+	}
+
+	// 检查是否已经关联
+	hasTag, err := s.repo.HasTag(prdID, tagID)
+	if err != nil {
+		return err
+	}
+	if hasTag {
+		return errors.New("tag already associated with this PRD")
+	}
+
+	// 添加标签关联
+	return s.repo.AddTag(prdID, tagID)
+}
+
+// RemovePRDTag 移除 PRD 的标签
+func (s *service) RemovePRDTag(prdID, tagID string) error {
+	// 检查 PRD 是否存在
+	_, err := s.repo.GetByID(prdID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("PRD not found")
+		}
+		return err
+	}
+
+	// 检查是否已关联
+	hasTag, err := s.repo.HasTag(prdID, tagID)
+	if err != nil {
+		return err
+	}
+	if !hasTag {
+		return errors.New("tag not associated with this PRD")
+	}
+
+	// 移除标签关联
+	return s.repo.RemoveTag(prdID, tagID)
 }

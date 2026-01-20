@@ -14,6 +14,9 @@ type PRDRepository interface {
 	Update(doc *prd.PRDDocument) error
 	Delete(id string) error
 	GetByCode(projectID, code string) (*prd.PRDDocument, error)
+	AddTag(prdID, tagID string) error
+	RemoveTag(prdID, tagID string) error
+	HasTag(prdID, tagID string) (bool, error)
 }
 
 // PRDListParams PRD 列表查询参数
@@ -122,4 +125,22 @@ func (r *prdRepository) GetByCode(projectID, code string) (*prd.PRDDocument, err
 	var doc prd.PRDDocument
 	err := r.db.Where("project_id = ? AND code = ?", projectID, code).First(&doc).Error
 	return &doc, err
+}
+
+// AddTag 为 PRD 添加标签
+func (r *prdRepository) AddTag(prdID, tagID string) error {
+	// 使用原生 SQL 插入关联记录
+	return r.db.Exec("INSERT INTO prd_tags (prd_id, tag_id) VALUES (?, ?)", prdID, tagID).Error
+}
+
+// RemoveTag 移除 PRD 的标签
+func (r *prdRepository) RemoveTag(prdID, tagID string) error {
+	return r.db.Exec("DELETE FROM prd_tags WHERE prd_id = ? AND tag_id = ?", prdID, tagID).Error
+}
+
+// HasTag 检查 PRD 是否已关联某个标签
+func (r *prdRepository) HasTag(prdID, tagID string) (bool, error) {
+	var count int64
+	err := r.db.Raw("SELECT COUNT(*) FROM prd_tags WHERE prd_id = ? AND tag_id = ?", prdID, tagID).Scan(&count).Error
+	return count > 0, err
 }

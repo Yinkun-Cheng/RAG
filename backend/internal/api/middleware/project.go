@@ -6,7 +6,6 @@ import (
 	"rag-backend/internal/pkg/logger"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -24,21 +23,7 @@ func ProjectIDValidator(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// 验证 UUID 格式
-		if _, err := uuid.Parse(projectID); err != nil {
-			logger.Warn("Invalid project ID format",
-				zap.String("project_id", projectID),
-				zap.Error(err),
-			)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"code":    400,
-				"message": "Invalid project ID format",
-			})
-			c.Abort()
-			return
-		}
-
-		// 验证项目是否存在
+		// 验证项目是否存在（不再强制要求 UUID 格式）
 		var count int64
 		if err := db.Table("projects").Where("id = ? AND deleted_at IS NULL", projectID).Count(&count).Error; err != nil {
 			logger.Error("Failed to check project existence",

@@ -95,6 +95,10 @@ func SetupRouter(router *gin.Engine, db *gorm.DB) {
 				prds.GET("/:prd_id/versions", prdHandler.GetPRDVersions)
 				prds.GET("/:prd_id/versions/compare", prdHandler.ComparePRDVersions)
 				prds.GET("/:prd_id/versions/:version", prdHandler.GetPRDVersion)
+				
+				// PRD 标签管理
+				prds.POST("/:prd_id/tags", prdHandler.AddPRDTag)
+				prds.DELETE("/:prd_id/tags/:tag_id", prdHandler.RemovePRDTag)
 			}
 		}
 	}

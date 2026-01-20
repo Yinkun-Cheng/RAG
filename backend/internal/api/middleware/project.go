@@ -14,7 +14,7 @@ import (
 // ProjectIDValidator 验证项目 ID 是否存在
 func ProjectIDValidator(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		projectID := c.Param("project_id")
+		projectID := c.Param("id")
 		if projectID == "" {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"code":    400,

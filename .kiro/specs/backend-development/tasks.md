@@ -58,12 +58,12 @@
 - [x] 2.1.5 实现删除项目 API（DELETE /api/v1/projects/:id）✅
 - [x] 2.1.6 实现项目统计 API（GET /api/v1/projects/:id/statistics）✅
 
-### 2.2 模块管理 API
-- [ ] 2.2.1 实现获取模块树 API（GET /api/v1/projects/:project_id/modules/tree）
-- [ ] 2.2.2 实现创建模块 API（POST /api/v1/projects/:project_id/modules）
-- [ ] 2.2.3 实现更新模块 API（PUT /api/v1/projects/:project_id/modules/:id）
-- [ ] 2.2.4 实现删除模块 API（DELETE /api/v1/projects/:project_id/modules/:id）
-- [ ] 2.2.5 实现模块排序 API（PUT /api/v1/projects/:project_id/modules/sort）
+### 2.2 模块管理 API ✅
+- [x] 2.2.1 实现获取模块树 API（GET /api/v1/projects/:id/modules/tree）✅
+- [x] 2.2.2 实现创建模块 API（POST /api/v1/projects/:id/modules）✅
+- [x] 2.2.3 实现更新模块 API（PUT /api/v1/projects/:id/modules/:module_id）✅
+- [x] 2.2.4 实现删除模块 API（DELETE /api/v1/projects/:id/modules/:module_id）✅
+- [x] 2.2.5 实现模块排序 API（PUT /api/v1/projects/:id/modules/sort）✅
 
 ## 阶段 3：标签管理 API
 
@@ -302,23 +302,25 @@
 ## 进度追踪
 
 - **总任务数**: 150+
-- **已完成**: 42 ✅
+- **已完成**: 47 ✅
 - **进行中**: 0
-- **待开始**: 108+
-- **完成度**: 28%
+- **待开始**: 103+
+- **完成度**: 31%
 
 ### 最新进度（2025-01-20）
 ✅ **阶段 1 完成** - 基础设施搭建
 ✅ **阶段 2.1 完成** - 项目管理 API
-- 实现了完整的项目 CRUD API
-- 实现了项目统计功能
+✅ **阶段 2.2 完成** - 模块管理 API
+- 修复了路由冲突问题（统一使用 :id 参数）
+- 实现了完整的模块 CRUD API
+- 实现了模块树形结构查询
+- 实现了模块排序功能
 - 所有 API 测试通过
 
 ### 下一步计划
-🔄 **阶段 2.2** - 模块管理 API
-- 实现模块树形结构 API
-- 实现模块 CRUD 操作
-- 实现模块排序功能
+� **阶段 3.1** - 标签管理 API
+- 实现标签 CRUD 操作
+- 实现标签使用统计
 
 ## 里程碑
 

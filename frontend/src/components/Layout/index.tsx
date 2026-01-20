@@ -5,10 +5,12 @@ import {
   FileTextOutlined,
   CheckSquareOutlined,
   SearchOutlined,
-  ImportOutlined,
   FolderOutlined,
   ArrowLeftOutlined,
   HomeOutlined,
+  SettingOutlined,
+  TagOutlined,
+  ThunderboltOutlined,
 } from '@ant-design/icons';
 import { mockProjects } from '../../mock/data';
 
@@ -49,14 +51,19 @@ export default function Layout() {
       label: '语义搜索',
     },
     {
-      key: `/project/${projectId}/import`,
-      icon: <ImportOutlined />,
-      label: '导入',
+      key: `/project/${projectId}/impact-analysis`,
+      icon: <ThunderboltOutlined />,
+      label: '影响分析',
     },
     {
       key: `/project/${projectId}/tags`,
-      icon: <FileTextOutlined />,
+      icon: <TagOutlined />,
       label: '标签管理',
+    },
+    {
+      key: `/project/${projectId}/settings`,
+      icon: <SettingOutlined />,
+      label: '系统配置',
     },
   ];
 
@@ -68,14 +75,15 @@ export default function Layout() {
     if (path.includes('/prd')) return 'PRD 文档';
     if (path.includes('/testcase')) return '测试用例';
     if (path.includes('/search')) return '语义搜索';
-    if (path.includes('/import')) return '导入';
+    if (path.includes('/impact-analysis')) return '影响分析';
     if (path.includes('/tags')) return '标签管理';
+    if (path.includes('/settings')) return '系统配置';
     return '';
   };
 
   return (
     <AntLayout className="min-h-screen">
-      <Header className="flex items-center justify-between bg-white border-b px-6">
+      <Header className="flex items-center justify-between bg-white border-b px-6" style={{ background: '#fff' }}>
         <div className="flex items-center gap-4">
           <Button
             type="text"
@@ -84,7 +92,7 @@ export default function Layout() {
           >
             返回项目列表
           </Button>
-          <div className="text-xl font-bold">{currentProject?.name || '项目'}</div>
+          <div className="text-xl font-bold text-gray-800">{currentProject?.name || '项目'}</div>
         </div>
         <Breadcrumb
           items={[

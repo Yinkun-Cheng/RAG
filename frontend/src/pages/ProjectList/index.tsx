@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Card, Button, Modal, Form, Input, Space, Empty, Row, Col } from 'antd';
+import { Card, Button, Modal, Form, Input, Empty, Row, Col, Statistic } from 'antd';
 import {
   PlusOutlined,
   FolderOpenOutlined,
   EditOutlined,
   DeleteOutlined,
+  FileTextOutlined,
+  CheckCircleOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
@@ -93,48 +95,99 @@ export default function ProjectList() {
     navigate(`/project/${projectId}`);
   };
 
+  // 计算统计数据
+  const totalProjects = projects.length;
+  const totalPRDs = projects.reduce((sum, p) => sum + p.prdCount, 0);
+  const totalTestCases = projects.reduce((sum, p) => sum + p.testCaseCount, 0);
+
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="p-8 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">项目管理</h1>
-            <p className="text-gray-500 mt-2">选择一个项目开始管理 PRD 和测试用例</p>
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">项目列表</h1>
+              <p className="text-gray-500">管理你的 PRD 文档和测试用例</p>
+            </div>
+            <Button
+              type="primary"
+              size="large"
+              icon={<PlusOutlined />}
+              onClick={() => {
+                setEditingProject(null);
+                form.resetFields();
+                setModalVisible(true);
+              }}
+            >
+              新建项目
+            </Button>
           </div>
-          <Button
-            type="primary"
-            size="large"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setEditingProject(null);
-              form.resetFields();
-              setModalVisible(true);
-            }}
-          >
-            新建项目
-          </Button>
+
+          {/* 统计数据 */}
+          <Row gutter={16}>
+            <Col span={8}>
+              <Card>
+                <Statistic
+                  title="总项目数"
+                  value={totalProjects}
+                  prefix={<FolderOpenOutlined />}
+                />
+              </Card>
+            </Col>
+            <Col span={8}>
+              <Card>
+                <Statistic
+                  title="PRD 文档"
+                  value={totalPRDs}
+                  prefix={<FileTextOutlined />}
+                />
+              </Card>
+            </Col>
+            <Col span={8}>
+              <Card>
+                <Statistic
+                  title="测试用例"
+                  value={totalTestCases}
+                  prefix={<CheckCircleOutlined />}
+                />
+              </Card>
+            </Col>
+          </Row>
         </div>
 
+        {/* 项目列表 */}
         {projects.length === 0 ? (
-          <Empty
-            description="暂无项目，请创建一个项目开始使用"
-            className="mt-20"
-          />
+          <Card>
+            <Empty
+              description="暂无项目，点击右上角按钮创建第一个项目"
+              className="py-12"
+            />
+          </Card>
         ) : (
-          <Row gutter={[24, 24]}>
+          <Row gutter={[16, 16]}>
             {projects.map(project => (
               <Col key={project.id} xs={24} sm={12} lg={8}>
                 <Card
                   hoverable
-                  className="h-full"
-                  actions={[
+                  className="border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
+                  style={{ background: 'linear-gradient(to bottom right, #fafafa, #f5f5f5)' }}
+                  title={
+                    <div className="flex items-center">
+                      <FolderOpenOutlined className="mr-2" />
+                      {project.name}
+                    </div>
+                  }
+                  extra={
                     <Button
-                      type="text"
-                      icon={<FolderOpenOutlined />}
+                      type="link"
+                      size="small"
                       onClick={() => handleOpenProject(project.id)}
                     >
                       打开
-                    </Button>,
+                    </Button>
+                  }
+                  actions={[
                     <Button
                       type="text"
                       icon={<EditOutlined />}
@@ -152,58 +205,56 @@ export default function ProjectList() {
                     </Button>,
                   ]}
                 >
-                  <div className="mb-4">
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">
-                      {project.name}
-                    </h3>
-                    <p className="text-gray-500 text-sm">{project.description}</p>
-                  </div>
-                  <div className="flex justify-between text-sm text-gray-600">
+                  <p className="text-gray-600 mb-4 min-h-[40px]">
+                    {project.description}
+                  </p>
+                  <div className="flex justify-between text-sm text-gray-500 mb-2">
                     <span>PRD: {project.prdCount}</span>
                     <span>测试用例: {project.testCaseCount}</span>
                   </div>
-                  <div className="mt-2 text-xs text-gray-400">
-                    创建于: {project.createdAt}
+                  <div className="text-xs text-gray-400">
+                    创建于 {project.createdAt}
                   </div>
                 </Card>
               </Col>
             ))}
           </Row>
         )}
-
-        <Modal
-          title={editingProject ? '编辑项目' : '新建项目'}
-          open={modalVisible}
-          onOk={handleCreateOrUpdate}
-          onCancel={() => {
-            setModalVisible(false);
-            setEditingProject(null);
-            form.resetFields();
-          }}
-          okText="确定"
-          cancelText="取消"
-        >
-          <Form form={form} layout="vertical">
-            <Form.Item
-              name="name"
-              label="项目名称"
-              rules={[{ required: true, message: '请输入项目名称' }]}
-            >
-              <Input placeholder="例如: 电商平台" />
-            </Form.Item>
-            <Form.Item
-              name="description"
-              label="项目描述"
-              rules={[{ required: true, message: '请输入项目描述' }]}
-            >
-              <Input.TextArea
-                placeholder="简要描述项目的主要内容"
-                rows={3}
-              />
-            </Form.Item>
-          </Form>
-        </Modal>
       </div>
+
+      {/* 创建/编辑项目 Modal */}
+      <Modal
+        title={editingProject ? '编辑项目' : '新建项目'}
+        open={modalVisible}
+        onOk={handleCreateOrUpdate}
+        onCancel={() => {
+          setModalVisible(false);
+          setEditingProject(null);
+          form.resetFields();
+        }}
+        okText="确定"
+        cancelText="取消"
+      >
+        <Form form={form} layout="vertical" className="mt-4">
+          <Form.Item
+            name="name"
+            label="项目名称"
+            rules={[{ required: true, message: '请输入项目名称' }]}
+          >
+            <Input placeholder="例如: 电商平台" />
+          </Form.Item>
+          <Form.Item
+            name="description"
+            label="项目描述"
+            rules={[{ required: true, message: '请输入项目描述' }]}
+          >
+            <Input.TextArea
+              placeholder="简要描述项目的主要内容和目标"
+              rows={4}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 }

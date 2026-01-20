@@ -13,8 +13,9 @@ import TestCase from './pages/TestCase';
 import TestCaseDetail from './pages/TestCase/TestCaseDetail';
 import TestCaseForm from './pages/TestCase/TestCaseForm';
 import Search from './pages/Search';
-import Import from './pages/Import';
+import ImpactAnalysis from './pages/ImpactAnalysis';
 import TagManagement from './pages/TagManagement';
+import Settings from './pages/Settings';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -51,8 +52,9 @@ function App() {
                 <Route path=":id/edit" element={<TestCaseForm />} />
               </Route>
               <Route path="search" element={<Search />} />
-              <Route path="import" element={<Import />} />
+              <Route path="impact-analysis" element={<ImpactAnalysis />} />
               <Route path="tags" element={<TagManagement />} />
+              <Route path="settings" element={<Settings />} />
             </Route>
           </Routes>
         </BrowserRouter>

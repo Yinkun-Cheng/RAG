@@ -9,12 +9,12 @@ Phase 1: 环境搭建与基础架构
 [x] 1.1.5 实现日志模块 (Zap)
 [x] 1.1.6 创建 main.go 并实现基础 HTTP 服务器
 1.2 前端项目初始化
-[ ] 1.2.1 使用 Vite 创建 React + TypeScript 项目
-[ ] 1.2.2 安装核心依赖 (Ant Design, React Router, React Query, Axios, Tailwind)
-[ ] 1.2.3 配置 ESLint 和 Prettier
-[ ] 1.2.4 配置 Tailwind CSS
-[ ] 1.2.5 创建基础路由结构
-[ ] 1.2.6 创建 Layout 组件框架
+[x] 1.2.1 使用 Vite 创建 React + TypeScript 项目
+[x] 1.2.2 安装核心依赖 (Ant Design, React Router, React Query, Axios, Tailwind)
+[x] 1.2.3 配置 ESLint 和 Prettier
+[x] 1.2.4 配置 Tailwind CSS
+[x] 1.2.5 创建基础路由结构
+[x] 1.2.6 创建 Layout 组件框架
 2. Day 2: 数据库与 Docker 环境
 2.1 数据库设计与迁移
 [ ] 2.1.1 编写数据库迁移脚本 (001_create_modules.sql)

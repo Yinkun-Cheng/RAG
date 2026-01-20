@@ -20,12 +20,13 @@ func SetupRouter(router *gin.Engine, db *gorm.DB) {
 	moduleRepo := postgres.NewModuleRepository(db)
 	tagRepo := postgres.NewTagRepository(db)
 	prdRepo := postgres.NewPRDRepository(db)
+	prdVersionRepo := postgres.NewPRDVersionRepository(db)
 
 	// 创建服务
 	projectSvc := projectService.NewService(projectRepo)
 	moduleSvc := moduleService.NewService(moduleRepo)
 	tagSvc := tagService.NewService(tagRepo)
-	prdSvc := prdService.NewService(prdRepo)
+	prdSvc := prdService.NewService(prdRepo, prdVersionRepo)
 
 	// 创建处理器
 	projectHandler := handler.NewProjectHandler(projectSvc)
@@ -84,6 +85,11 @@ func SetupRouter(router *gin.Engine, db *gorm.DB) {
 				prds.GET("/:prd_id", prdHandler.GetPRD)
 				prds.PUT("/:prd_id", prdHandler.UpdatePRD)
 				prds.DELETE("/:prd_id", prdHandler.DeletePRD)
+				
+				// PRD 版本管理
+				prds.GET("/:prd_id/versions", prdHandler.GetPRDVersions)
+				prds.GET("/:prd_id/versions/compare", prdHandler.ComparePRDVersions)
+				prds.GET("/:prd_id/versions/:version", prdHandler.GetPRDVersion)
 			}
 		}
 	}

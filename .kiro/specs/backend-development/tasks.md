@@ -89,11 +89,11 @@
 - [x] 4.1.4 实现更新 PRD API（PUT /api/v1/projects/:id/prds/:prd_id）✅
 - [x] 4.1.5 实现删除 PRD API（DELETE /api/v1/projects/:id/prds/:prd_id）✅
 
-### 4.2 PRD 版本管理
-- [ ] 4.2.1 实现创建 PRD 版本功能
-- [ ] 4.2.2 实现获取 PRD 版本列表 API（GET /api/v1/projects/:project_id/prds/:id/versions）
-- [ ] 4.2.3 实现获取特定版本内容 API（GET /api/v1/projects/:project_id/prds/:id/versions/:version）
-- [ ] 4.2.4 实现版本对比 API（GET /api/v1/projects/:project_id/prds/:id/versions/compare）
+### 4.2 PRD 版本管理 ✅
+- [x] 4.2.1 实现创建 PRD 版本功能 ✅
+- [x] 4.2.2 实现获取 PRD 版本列表 API（GET /api/v1/projects/:id/prds/:prd_id/versions）✅
+- [x] 4.2.3 实现获取特定版本内容 API（GET /api/v1/projects/:id/prds/:prd_id/versions/:version）✅
+- [x] 4.2.4 实现版本对比 API（GET /api/v1/projects/:id/prds/:prd_id/versions/compare）✅
 
 ### 4.3 PRD 状态管理
 - [ ] 4.3.1 实现更新 PRD 状态 API（PUT /api/v1/projects/:project_id/prds/:id/status）
@@ -302,10 +302,10 @@
 ## 进度追踪
 
 - **总任务数**: 150+
-- **已完成**: 59 ✅
+- **已完成**: 63 ✅
 - **进行中**: 0
-- **待开始**: 91+
-- **完成度**: 39%
+- **待开始**: 87+
+- **完成度**: 42%
 
 ### 最新进度（2025-01-20）
 ✅ **阶段 1 完成** - 基础设施搭建

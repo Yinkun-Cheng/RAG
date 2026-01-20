@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 
 	"rag-backend/internal/domain/common"
@@ -177,4 +178,109 @@ func (h *PRDHandler) DeletePRD(c *gin.Context) {
 	c.JSON(http.StatusOK, common.SuccessResponse(gin.H{
 		"message": "PRD deleted successfully",
 	}))
+}
+
+
+// GetPRDVersions 获取 PRD 版本列表
+// @Summary 获取 PRD 版本列表
+// @Tags PRD 管理
+// @Produce json
+// @Param id path string true "项目ID"
+// @Param prd_id path string true "PRD ID"
+// @Success 200 {object} common.Response
+// @Router /api/v1/projects/{id}/prds/{prd_id}/versions [get]
+func (h *PRDHandler) GetPRDVersions(c *gin.Context) {
+	prdID := c.Param("prd_id")
+
+	versions, err := h.service.GetPRDVersions(prdID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, common.ErrorResponse(
+			common.CodeInternalServerError,
+			"Failed to get PRD versions",
+			err.Error(),
+		))
+		return
+	}
+
+	c.JSON(http.StatusOK, common.SuccessResponse(versions))
+}
+
+// GetPRDVersion 获取 PRD 特定版本
+// @Summary 获取 PRD 特定版本
+// @Tags PRD 管理
+// @Produce json
+// @Param id path string true "项目ID"
+// @Param prd_id path string true "PRD ID"
+// @Param version path int true "版本号"
+// @Success 200 {object} common.Response
+// @Router /api/v1/projects/{id}/prds/{prd_id}/versions/{version} [get]
+func (h *PRDHandler) GetPRDVersion(c *gin.Context) {
+	prdID := c.Param("prd_id")
+	versionStr := c.Param("version")
+
+	var version int
+	if _, err := fmt.Sscanf(versionStr, "%d", &version); err != nil {
+		c.JSON(http.StatusBadRequest, common.ErrorResponse(
+			common.CodeBadRequest,
+			"Invalid version number",
+			err.Error(),
+		))
+		return
+	}
+
+	v, err := h.service.GetPRDVersion(prdID, version)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, common.ErrorResponse(
+			common.CodeInternalServerError,
+			"Failed to get PRD version",
+			err.Error(),
+		))
+		return
+	}
+
+	c.JSON(http.StatusOK, common.SuccessResponse(v))
+}
+
+// ComparePRDVersions 对比 PRD 版本
+// @Summary 对比 PRD 版本
+// @Tags PRD 管理
+// @Produce json
+// @Param id path string true "项目ID"
+// @Param prd_id path string true "PRD ID"
+// @Param version1 query int true "版本1"
+// @Param version2 query int true "版本2"
+// @Success 200 {object} common.Response
+// @Router /api/v1/projects/{id}/prds/{prd_id}/versions/compare [get]
+func (h *PRDHandler) ComparePRDVersions(c *gin.Context) {
+	prdID := c.Param("prd_id")
+	
+	var version1, version2 int
+	if _, err := fmt.Sscanf(c.Query("version1"), "%d", &version1); err != nil {
+		c.JSON(http.StatusBadRequest, common.ErrorResponse(
+			common.CodeBadRequest,
+			"Invalid version1 number",
+			err.Error(),
+		))
+		return
+	}
+	if _, err := fmt.Sscanf(c.Query("version2"), "%d", &version2); err != nil {
+		c.JSON(http.StatusBadRequest, common.ErrorResponse(
+			common.CodeBadRequest,
+			"Invalid version2 number",
+			err.Error(),
+		))
+		return
+	}
+
+	result, err := h.service.ComparePRDVersions(prdID, version1, version2)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, common.ErrorResponse(
+			common.CodeInternalServerError,
+			"Failed to compare PRD versions",
+			err.Error(),
+		))
+		return
+	}
+
+	c.JSON(http.StatusOK, common.SuccessResponse(result))
 }

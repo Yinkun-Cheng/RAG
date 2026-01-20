@@ -19,15 +19,22 @@ type Service interface {
 	ListPRDs(projectID string, req *ListPRDRequest) (*ListPRDResponse, error)
 	UpdatePRD(id string, req *UpdatePRDRequest) (*prd.PRDDocument, error)
 	DeletePRD(id string) error
+	GetPRDVersions(prdID string) ([]*prd.PRDVersion, error)
+	GetPRDVersion(prdID string, version int) (*prd.PRDVersion, error)
+	ComparePRDVersions(prdID string, version1, version2 int) (*VersionCompareResponse, error)
 }
 
 type service struct {
-	repo postgres.PRDRepository
+	repo        postgres.PRDRepository
+	versionRepo postgres.PRDVersionRepository
 }
 
 // NewService 创建 PRD 文档服务实例
-func NewService(repo postgres.PRDRepository) Service {
-	return &service{repo: repo}
+func NewService(repo postgres.PRDRepository, versionRepo postgres.PRDVersionRepository) Service {
+	return &service{
+		repo:        repo,
+		versionRepo: versionRepo,
+	}
 }
 
 // CreatePRDRequest 创建 PRD 请求
@@ -162,22 +169,26 @@ func (s *service) UpdatePRD(id string, req *UpdatePRDRequest) (*prd.PRDDocument,
 		return nil, err
 	}
 
+	// 记录是否有内容变更
+	contentChanged := false
+	changeLog := ""
+
 	// 更新字段
 	if req.AppVersionID != nil {
 		doc.AppVersionID = *req.AppVersionID
 	}
-	if req.Title != nil {
+	if req.Title != nil && *req.Title != doc.Title {
+		changeLog += "标题已更新; "
 		doc.Title = *req.Title
+		contentChanged = true
 	}
 	if req.ModuleID != nil {
 		doc.ModuleID = req.ModuleID
 	}
-	if req.Content != nil {
+	if req.Content != nil && *req.Content != doc.Content {
+		changeLog += "内容已更新; "
 		doc.Content = *req.Content
-		// 内容更新后，版本号加 1
-		doc.Version++
-		// 标记需要重新同步
-		doc.SyncedToVector = false
+		contentChanged = true
 	}
 	if req.Status != nil {
 		doc.Status = *req.Status
@@ -186,8 +197,30 @@ func (s *service) UpdatePRD(id string, req *UpdatePRDRequest) (*prd.PRDDocument,
 		doc.Author = *req.Author
 	}
 
-	if err := s.repo.Update(doc); err != nil {
-		return nil, err
+	// 如果内容有变更，版本号加 1 并创建版本记录
+	if contentChanged {
+		doc.Version++
+		doc.SyncedToVector = false
+
+		// 先更新文档
+		if err := s.repo.Update(doc); err != nil {
+			return nil, err
+		}
+
+		// 创建版本记录
+		author := doc.Author
+		if req.Author != nil {
+			author = *req.Author
+		}
+		if err := s.createVersion(doc, changeLog, author); err != nil {
+			// 版本记录创建失败不影响主流程，只记录错误
+			// 实际生产环境可以考虑使用事务
+		}
+	} else {
+		// 没有内容变更，只更新文档
+		if err := s.repo.Update(doc); err != nil {
+			return nil, err
+		}
 	}
 
 	// 重新查询以获取关联数据
@@ -206,4 +239,109 @@ func (s *service) DeletePRD(id string) error {
 	}
 
 	return s.repo.Delete(id)
+}
+
+
+// VersionCompareResponse 版本对比响应
+type VersionCompareResponse struct {
+	Version1 *prd.PRDVersion `json:"version1"`
+	Version2 *prd.PRDVersion `json:"version2"`
+	Changes  *VersionChanges `json:"changes"`
+}
+
+// VersionChanges 版本变更内容
+type VersionChanges struct {
+	TitleChanged   bool   `json:"title_changed"`
+	ContentChanged bool   `json:"content_changed"`
+	OldTitle       string `json:"old_title,omitempty"`
+	NewTitle       string `json:"new_title,omitempty"`
+}
+
+// createVersion 创建版本记录（内部方法）
+func (s *service) createVersion(doc *prd.PRDDocument, changeLog string, createdBy string) error {
+	version := &prd.PRDVersion{
+		ID:        uuid.New().String(),
+		PRDID:     doc.ID,
+		Version:   doc.Version,
+		Title:     doc.Title,
+		Content:   doc.Content,
+		ChangeLog: changeLog,
+		CreatedBy: createdBy,
+		CreatedAt: time.Now(),
+	}
+
+	return s.versionRepo.Create(version)
+}
+
+// GetPRDVersions 获取 PRD 版本列表
+func (s *service) GetPRDVersions(prdID string) ([]*prd.PRDVersion, error) {
+	// 检查 PRD 是否存在
+	_, err := s.repo.GetByID(prdID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("PRD not found")
+		}
+		return nil, err
+	}
+
+	return s.versionRepo.GetByPRDID(prdID)
+}
+
+// GetPRDVersion 获取 PRD 特定版本
+func (s *service) GetPRDVersion(prdID string, version int) (*prd.PRDVersion, error) {
+	// 检查 PRD 是否存在
+	_, err := s.repo.GetByID(prdID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("PRD not found")
+		}
+		return nil, err
+	}
+
+	v, err := s.versionRepo.GetByVersion(prdID, version)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("version not found")
+		}
+		return nil, err
+	}
+
+	return v, nil
+}
+
+// ComparePRDVersions 对比两个版本
+func (s *service) ComparePRDVersions(prdID string, version1, version2 int) (*VersionCompareResponse, error) {
+	// 获取两个版本
+	v1, err := s.versionRepo.GetByVersion(prdID, version1)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("version1 not found")
+		}
+		return nil, err
+	}
+
+	v2, err := s.versionRepo.GetByVersion(prdID, version2)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("version2 not found")
+		}
+		return nil, err
+	}
+
+	// 对比变更
+	changes := &VersionChanges{
+		TitleChanged:   v1.Title != v2.Title,
+		ContentChanged: v1.Content != v2.Content,
+	}
+
+	if changes.TitleChanged {
+		changes.OldTitle = v1.Title
+		changes.NewTitle = v2.Title
+	}
+
+	return &VersionCompareResponse{
+		Version1: v1,
+		Version2: v2,
+		Changes:  changes,
+	}, nil
 }

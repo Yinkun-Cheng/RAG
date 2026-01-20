@@ -10,6 +10,8 @@ import PRD from './pages/PRD';
 import PRDDetail from './pages/PRD/PRDDetail';
 import PRDForm from './pages/PRD/PRDForm';
 import TestCase from './pages/TestCase';
+import TestCaseDetail from './pages/TestCase/TestCaseDetail';
+import TestCaseForm from './pages/TestCase/TestCaseForm';
 import Search from './pages/Search';
 import Import from './pages/Import';
 import TagManagement from './pages/TagManagement';
@@ -42,7 +44,12 @@ function App() {
                 <Route path=":id" element={<PRDDetail />} />
                 <Route path=":id/edit" element={<PRDForm />} />
               </Route>
-              <Route path="testcase" element={<TestCase />} />
+              <Route path="testcase">
+                <Route index element={<TestCase />} />
+                <Route path="new" element={<TestCaseForm />} />
+                <Route path=":id" element={<TestCaseDetail />} />
+                <Route path=":id/edit" element={<TestCaseForm />} />
+              </Route>
               <Route path="search" element={<Search />} />
               <Route path="import" element={<Import />} />
               <Route path="tags" element={<TagManagement />} />

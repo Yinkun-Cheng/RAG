@@ -10,28 +10,72 @@ import {
   Table,
   Badge,
   Divider,
+  Tooltip,
 } from 'antd';
-import { EditOutlined, ArrowLeftOutlined, HistoryOutlined } from '@ant-design/icons';
+import {
+  EditOutlined,
+  ArrowLeftOutlined,
+  HistoryOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  InboxOutlined,
+} from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
+import rehypeHighlight from 'rehype-highlight';
+import 'highlight.js/styles/github.css';
 import { mockPRDs, mockTags, mockTestCases } from '../../mock/data';
 import type { ColumnsType } from 'antd/es/table';
 
 export default function PRDDetail() {
-  const { id } = useParams();
+  const { id, projectId } = useParams<{ id: string; projectId: string }>();
   const navigate = useNavigate();
   const [showHistory, setShowHistory] = useState(false);
 
-  const prd = mockPRDs.find(p => p.id === id);
+  const prd = mockPRDs.find(p => p.id === id && p.projectId === projectId);
 
   if (!prd) {
-    return <div className="p-6">PRD 不存在</div>;
+    return (
+      <div className="p-6">
+        <div className="text-center py-20">
+          <p className="text-xl text-gray-500">PRD 不存在</p>
+          <Button
+            type="primary"
+            className="mt-4"
+            onClick={() => navigate(`/project/${projectId}/prd`)}
+          >
+            返回列表
+          </Button>
+        </div>
+      </div>
+    );
   }
 
-  const statusMap = {
-    draft: { text: '草稿', color: 'default' },
-    published: { text: '已发布', color: 'success' },
-    archived: { text: '已归档', color: 'warning' },
+  // 状态配置
+  const statusConfig = {
+    draft: {
+      text: '草稿',
+      badge: 'default',
+      icon: <ClockCircleOutlined />,
+      description: '文档正在编辑，未进入知识库',
+      color: '#d9d9d9',
+    },
+    published: {
+      text: '已发布',
+      badge: 'success',
+      icon: <CheckCircleOutlined />,
+      description: '已向量化并同步到知识库，可被 AI 检索',
+      color: '#52c41a',
+    },
+    archived: {
+      text: '已归档',
+      badge: 'warning',
+      icon: <InboxOutlined />,
+      description: '已从知识库移除，不再被 AI 检索',
+      color: '#faad14',
+    },
   };
+
+  const currentStatus = statusConfig[prd.status];
 
   // Mock 版本历史
   const versionHistory = [
@@ -49,8 +93,10 @@ export default function PRDDetail() {
     },
   ];
 
-  // 关联的测试用例
-  const relatedTestCases = mockTestCases.filter(tc => tc.moduleId === prd.moduleId);
+  // 关联的测试用例（同一个模块下的）
+  const relatedTestCases = mockTestCases.filter(
+    tc => tc.moduleId === prd.moduleId && tc.projectId === projectId
+  );
 
   const testCaseColumns: ColumnsType<typeof relatedTestCases[0]> = [
     {
@@ -59,7 +105,7 @@ export default function PRDDetail() {
       key: 'title',
       render: (title, record) => (
         <a
-          onClick={() => navigate(`/testcase/${record.id}`)}
+          onClick={() => navigate(`/project/${projectId}/testcase/${record.id}`)}
           className="text-blue-600 hover:underline"
         >
           {title}
@@ -85,12 +131,24 @@ export default function PRDDetail() {
       key: 'type',
       render: type => {
         const map = {
-          functional: '功能测试',
-          performance: '性能测试',
-          security: '安全测试',
-          ui: 'UI测试',
+          functional: '功能',
+          performance: '性能',
+          security: '安全',
+          ui: 'UI',
         };
-        return map[type as keyof typeof map];
+        return <Tag color="blue">{map[type as keyof typeof map]}</Tag>;
+      },
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      key: 'status',
+      render: status => {
+        const map = {
+          active: { text: '有效', badge: 'success' },
+          deprecated: { text: '已废弃', badge: 'default' },
+        };
+        return <Badge status={map[status].badge as any} text={map[status].text} />;
       },
     },
   ];
@@ -98,7 +156,10 @@ export default function PRDDetail() {
   return (
     <div className="p-6">
       <div className="mb-4">
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/prd')}>
+        <Button
+          icon={<ArrowLeftOutlined />}
+          onClick={() => navigate(`/project/${projectId}/prd`)}
+        >
           返回列表
         </Button>
       </div>
@@ -106,18 +167,18 @@ export default function PRDDetail() {
       <Card
         title={
           <div className="flex justify-between items-center">
-            <span className="text-xl">{prd.title}</span>
+            <span className="text-xl font-bold">{prd.title}</span>
             <Space>
               <Button
                 icon={<HistoryOutlined />}
                 onClick={() => setShowHistory(!showHistory)}
               >
-                版本历史
+                {showHistory ? '隐藏历史' : '版本历史'}
               </Button>
               <Button
                 type="primary"
                 icon={<EditOutlined />}
-                onClick={() => navigate(`/prd/${id}/edit`)}
+                onClick={() => navigate(`/project/${projectId}/prd/${id}/edit`)}
               >
                 编辑
               </Button>
@@ -125,18 +186,27 @@ export default function PRDDetail() {
           </div>
         }
       >
-        <Descriptions column={2} bordered>
+        <Descriptions column={2} bordered size="small">
+          <Descriptions.Item label="App 版本">{prd.appVersion}</Descriptions.Item>
           <Descriptions.Item label="所属模块">{prd.moduleName}</Descriptions.Item>
           <Descriptions.Item label="状态">
-            <Badge
-              status={statusMap[prd.status].color as any}
-              text={statusMap[prd.status].text}
-            />
+            <Tooltip title={currentStatus.description}>
+              <Space>
+                <Badge status={currentStatus.badge as any} />
+                <span style={{ color: currentStatus.color }}>{currentStatus.icon}</span>
+                <span>{currentStatus.text}</span>
+              </Space>
+            </Tooltip>
           </Descriptions.Item>
-          <Descriptions.Item label="当前版本">v{prd.version}</Descriptions.Item>
+          <Descriptions.Item label="文档版本">v{prd.version}</Descriptions.Item>
           <Descriptions.Item label="创建时间">{prd.createdAt}</Descriptions.Item>
           <Descriptions.Item label="更新时间">{prd.updatedAt}</Descriptions.Item>
-          <Descriptions.Item label="标签">
+          {prd.status === 'published' && prd.lastSyncTime && (
+            <Descriptions.Item label="最后同步时间" span={2}>
+              {prd.lastSyncTime}
+            </Descriptions.Item>
+          )}
+          <Descriptions.Item label="标签" span={2}>
             {prd.tags.map(tag => {
               const tagInfo = mockTags.find(t => t.name === tag);
               return (
@@ -148,10 +218,9 @@ export default function PRDDetail() {
           </Descriptions.Item>
         </Descriptions>
 
-        <Divider />
-
         {showHistory && (
           <>
+            <Divider />
             <h3 className="text-lg font-bold mb-4">版本历史</h3>
             <Timeline
               items={versionHistory.map(v => ({
@@ -165,24 +234,32 @@ export default function PRDDetail() {
                 ),
               }))}
             />
-            <Divider />
           </>
         )}
 
+        <Divider />
+
         <h3 className="text-lg font-bold mb-4">文档内容</h3>
-        <div className="prose max-w-none bg-gray-50 p-4 rounded">
-          <ReactMarkdown>{prd.content}</ReactMarkdown>
+        <div className="prose max-w-none bg-white border rounded p-6">
+          <ReactMarkdown rehypePlugins={[rehypeHighlight]}>{prd.content}</ReactMarkdown>
         </div>
 
         <Divider />
 
-        <h3 className="text-lg font-bold mb-4">关联测试用例 ({relatedTestCases.length})</h3>
-        <Table
-          columns={testCaseColumns}
-          dataSource={relatedTestCases}
-          rowKey="id"
-          pagination={false}
-        />
+        <h3 className="text-lg font-bold mb-4">
+          关联测试用例 ({relatedTestCases.length})
+        </h3>
+        {relatedTestCases.length > 0 ? (
+          <Table
+            columns={testCaseColumns}
+            dataSource={relatedTestCases}
+            rowKey="id"
+            pagination={false}
+            size="small"
+          />
+        ) : (
+          <div className="text-center py-8 text-gray-400">暂无关联测试用例</div>
+        )}
       </Card>
     </div>
   );

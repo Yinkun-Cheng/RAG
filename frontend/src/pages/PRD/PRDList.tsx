@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Collapse,
   Table,
@@ -24,6 +24,8 @@ import {
   InboxOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
+  ExpandOutlined,
+  ShrinkOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { ColumnsType } from 'antd/es/table';
@@ -40,6 +42,7 @@ export default function PRDList() {
   const [selectedStatus, setSelectedStatus] = useState<string | undefined>();
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [versionModalVisible, setVersionModalVisible] = useState(false);
+  const [activeKeys, setActiveKeys] = useState<string[]>([]);
   const [form] = Form.useForm();
 
   // 获取所有模块（扁平化）
@@ -87,6 +90,11 @@ export default function PRDList() {
   // 过滤当前项目的 App 版本和 PRD
   const projectVersions = mockAppVersions.filter(v => v.projectId === projectId);
   const projectPRDs = mockPRDs.filter(p => p.projectId === projectId);
+
+  // 初始化时展开所有面板
+  useEffect(() => {
+    setActiveKeys(projectVersions.map(v => v.id));
+  }, [projectId]);
 
   // 按 App 版本分组 PRD
   const groupedPRDs = projectVersions.map(version => {
@@ -282,20 +290,29 @@ export default function PRDList() {
     });
   };
 
+  // 全部展开
+  const handleExpandAll = () => {
+    setActiveKeys(projectVersions.map(v => v.id));
+  };
+
+  // 全部折叠
+  const handleCollapseAll = () => {
+    setActiveKeys([]);
+  };
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">PRD 文档管理</h1>
         <Space>
+          <Button icon={<ExpandOutlined />} onClick={handleExpandAll}>
+            全部展开
+          </Button>
+          <Button icon={<ShrinkOutlined />} onClick={handleCollapseAll}>
+            全部折叠
+          </Button>
           <Button icon={<FolderOutlined />} onClick={() => setVersionModalVisible(true)}>
             新建版本
-          </Button>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => navigate(`/project/${projectId}/prd/new`)}
-          >
-            新建 PRD
           </Button>
         </Space>
       </div>
@@ -351,19 +368,33 @@ export default function PRDList() {
 
       {/* 按版本分组展示 */}
       <Collapse
-        defaultActiveKey={projectVersions.map(v => v.id)}
+        activeKey={activeKeys}
+        onChange={keys => setActiveKeys(keys as string[])}
         expandIconPosition="start"
       >
         {groupedPRDs.map(({ version, prds }) => (
           <Panel
             key={version.id}
             header={
-              <Space>
-                <FolderOutlined style={{ fontSize: 18, color: '#1890ff' }} />
-                <span className="font-bold">{version.version}</span>
-                <span className="text-gray-500">- {version.description}</span>
-                <Badge count={prds.length} style={{ backgroundColor: '#52c41a' }} />
-              </Space>
+              <div className="flex justify-between items-center w-full pr-4">
+                <Space>
+                  <FolderOutlined style={{ fontSize: 18, color: '#1890ff' }} />
+                  <span className="font-bold">{version.version}</span>
+                  <span className="text-gray-500">- {version.description}</span>
+                  <Badge count={prds.length} style={{ backgroundColor: '#52c41a' }} />
+                </Space>
+                <Button
+                  type="primary"
+                  size="small"
+                  icon={<PlusOutlined />}
+                  onClick={e => {
+                    e.stopPropagation();
+                    navigate(`/project/${projectId}/prd/new?version=${version.id}`);
+                  }}
+                >
+                  新建 PRD
+                </Button>
+              </div>
             }
           >
             <Table

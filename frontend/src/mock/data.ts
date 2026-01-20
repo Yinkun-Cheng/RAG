@@ -55,6 +55,8 @@ export interface TestCase {
   id: string;
   projectId: string;
   projectName: string;
+  appVersionId: string;
+  appVersion: string;
   title: string;
   moduleId: string;
   moduleName: string;
@@ -310,6 +312,8 @@ export const mockTestCases: TestCase[] = [
     id: '1',
     projectId: 'proj-1',
     projectName: '电商平台',
+    appVersionId: 'v1',
+    appVersion: 'v1.0.0',
     title: '用户注册-手机号注册成功',
     moduleId: '1-1',
     moduleName: '用户注册',
@@ -364,6 +368,8 @@ export const mockTestCases: TestCase[] = [
     id: '2',
     projectId: 'proj-1',
     projectName: '电商平台',
+    appVersionId: 'v1',
+    appVersion: 'v1.0.0',
     title: '用户登录-密码错误',
     moduleId: '1-2',
     moduleName: '用户登录',
@@ -406,6 +412,8 @@ export const mockTestCases: TestCase[] = [
     id: '3',
     projectId: 'proj-1',
     projectName: '电商平台',
+    appVersionId: 'v2',
+    appVersion: 'v1.1.0',
     title: '订单创建-正常流程',
     moduleId: '2-1',
     moduleName: '创建订单',

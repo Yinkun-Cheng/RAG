@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"rag-backend/internal/api/middleware"
 	"rag-backend/internal/pkg/config"
 	"rag-backend/internal/pkg/database"
 	"rag-backend/internal/pkg/logger"
@@ -68,6 +69,11 @@ func main() {
 
 	// Initialize Gin router
 	router := gin.Default()
+
+	// Apply custom middlewares
+	router.Use(middleware.CORS())
+	router.Use(middleware.Logger())
+	router.Use(middleware.Recovery())
 
 	// Health check endpoint
 	router.GET("/health", func(c *gin.Context) {

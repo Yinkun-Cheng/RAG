@@ -7,6 +7,7 @@ import (
 	"syscall"
 
 	"rag-backend/internal/api/middleware"
+	"rag-backend/internal/api/router"
 	"rag-backend/internal/pkg/config"
 	"rag-backend/internal/pkg/database"
 	"rag-backend/internal/pkg/logger"
@@ -68,15 +69,15 @@ func main() {
 	}
 
 	// Initialize Gin router
-	router := gin.Default()
+	ginRouter := gin.Default()
 
 	// Apply custom middlewares
-	router.Use(middleware.CORS())
-	router.Use(middleware.Logger())
-	router.Use(middleware.Recovery())
+	ginRouter.Use(middleware.CORS())
+	ginRouter.Use(middleware.Logger())
+	ginRouter.Use(middleware.Recovery())
 
 	// Health check endpoint
-	router.GET("/health", func(c *gin.Context) {
+	ginRouter.GET("/health", func(c *gin.Context) {
 		// Check database health
 		dbHealthy := true
 		if err := database.HealthCheck(db); err != nil {
@@ -98,21 +99,14 @@ func main() {
 		})
 	})
 
-	// API v1 group
-	v1 := router.Group("/api/v1")
-	{
-		v1.GET("/ping", func(c *gin.Context) {
-			c.JSON(200, gin.H{
-				"message": "pong",
-			})
-		})
-	}
+	// Setup API routes
+	router.SetupRouter(ginRouter, db)
 
 	// Start server in a goroutine
 	go func() {
 		addr := fmt.Sprintf(":%d", cfg.Server.Port)
 		logger.Info("Server listening", zap.String("address", addr))
-		if err := router.Run(addr); err != nil {
+		if err := ginRouter.Run(addr); err != nil {
 			logger.Fatal("Failed to start server", zap.Error(err))
 		}
 	}()

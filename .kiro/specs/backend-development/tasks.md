@@ -67,12 +67,12 @@
 
 ## 阶段 3：标签管理 API
 
-### 3.1 标签 CRUD
-- [ ] 3.1.1 实现获取所有标签 API（GET /api/v1/projects/:project_id/tags）
-- [ ] 3.1.2 实现创建标签 API（POST /api/v1/projects/:project_id/tags）
-- [ ] 3.1.3 实现更新标签 API（PUT /api/v1/projects/:project_id/tags/:id）
-- [ ] 3.1.4 实现删除标签 API（DELETE /api/v1/projects/:project_id/tags/:id）
-- [ ] 3.1.5 实现标签使用统计 API（GET /api/v1/projects/:project_id/tags/:id/usage）
+### 3.1 标签 CRUD ✅
+- [x] 3.1.1 实现获取所有标签 API（GET /api/v1/projects/:id/tags）✅
+- [x] 3.1.2 实现创建标签 API（POST /api/v1/projects/:id/tags）✅
+- [x] 3.1.3 实现更新标签 API（PUT /api/v1/projects/:id/tags/:tag_id）✅
+- [x] 3.1.4 实现删除标签 API（DELETE /api/v1/projects/:id/tags/:tag_id）✅
+- [x] 3.1.5 实现标签使用统计 API（GET /api/v1/projects/:id/tags/:tag_id/usage）✅
 
 ## 阶段 4：PRD 文档管理 API
 
@@ -302,19 +302,19 @@
 ## 进度追踪
 
 - **总任务数**: 150+
-- **已完成**: 47 ✅
+- **已完成**: 52 ✅
 - **进行中**: 0
-- **待开始**: 103+
-- **完成度**: 31%
+- **待开始**: 98+
+- **完成度**: 35%
 
 ### 最新进度（2025-01-20）
 ✅ **阶段 1 完成** - 基础设施搭建
 ✅ **阶段 2.1 完成** - 项目管理 API
 ✅ **阶段 2.2 完成** - 模块管理 API
-- 修复了路由冲突问题（统一使用 :id 参数）
-- 实现了完整的模块 CRUD API
-- 实现了模块树形结构查询
-- 实现了模块排序功能
+✅ **阶段 3.1 完成** - 标签管理 API
+- 实现了完整的标签 CRUD API
+- 实现了标签使用统计功能
+- 支持删除前检查标签使用情况
 - 所有 API 测试通过
 
 ### 下一步计划

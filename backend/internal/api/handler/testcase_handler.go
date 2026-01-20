@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 
 	"rag-backend/internal/domain/common"
@@ -283,4 +284,65 @@ func (h *TestCaseHandler) RemoveTestCaseTag(c *gin.Context) {
 	c.JSON(http.StatusOK, common.SuccessResponse(gin.H{
 		"message": "Tag removed successfully",
 	}))
+}
+
+
+// GetTestCaseVersions 获取测试用例版本列表
+// @Summary 获取测试用例版本列表
+// @Tags 测试用例管理
+// @Produce json
+// @Param id path string true "项目ID"
+// @Param testcase_id path string true "测试用例ID"
+// @Success 200 {object} common.Response
+// @Router /api/v1/projects/{id}/testcases/{testcase_id}/versions [get]
+func (h *TestCaseHandler) GetTestCaseVersions(c *gin.Context) {
+	testCaseID := c.Param("testcase_id")
+
+	versions, err := h.service.GetTestCaseVersions(testCaseID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, common.ErrorResponse(
+			common.CodeInternalServerError,
+			"Failed to get test case versions",
+			err.Error(),
+		))
+		return
+	}
+
+	c.JSON(http.StatusOK, common.SuccessResponse(versions))
+}
+
+// GetTestCaseVersion 获取测试用例特定版本
+// @Summary 获取测试用例特定版本
+// @Tags 测试用例管理
+// @Produce json
+// @Param id path string true "项目ID"
+// @Param testcase_id path string true "测试用例ID"
+// @Param version path int true "版本号"
+// @Success 200 {object} common.Response
+// @Router /api/v1/projects/{id}/testcases/{testcase_id}/versions/{version} [get]
+func (h *TestCaseHandler) GetTestCaseVersion(c *gin.Context) {
+	testCaseID := c.Param("testcase_id")
+	versionStr := c.Param("version")
+
+	var version int
+	if _, err := fmt.Sscanf(versionStr, "%d", &version); err != nil {
+		c.JSON(http.StatusBadRequest, common.ErrorResponse(
+			common.CodeBadRequest,
+			"Invalid version number",
+			err.Error(),
+		))
+		return
+	}
+
+	v, err := h.service.GetTestCaseVersion(testCaseID, version)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, common.ErrorResponse(
+			common.CodeInternalServerError,
+			"Failed to get test case version",
+			err.Error(),
+		))
+		return
+	}
+
+	c.JSON(http.StatusOK, common.SuccessResponse(v))
 }

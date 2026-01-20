@@ -1,6 +1,7 @@
 package testcase
 
 import (
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -22,18 +23,22 @@ type Service interface {
 	BatchDeleteTestCases(ids []string) error
 	AddTestCaseTag(testCaseID, tagID string) error
 	RemoveTestCaseTag(testCaseID, tagID string) error
+	GetTestCaseVersions(testCaseID string) ([]*testcase.TestCaseVersion, error)
+	GetTestCaseVersion(testCaseID string, version int) (*testcase.TestCaseVersion, error)
 }
 
 type service struct {
-	repo     postgres.TestCaseRepository
-	stepRepo postgres.TestStepRepository
+	repo        postgres.TestCaseRepository
+	stepRepo    postgres.TestStepRepository
+	versionRepo postgres.TestCaseVersionRepository
 }
 
 // NewService 创建测试用例服务实例
-func NewService(repo postgres.TestCaseRepository, stepRepo postgres.TestStepRepository) Service {
+func NewService(repo postgres.TestCaseRepository, stepRepo postgres.TestStepRepository, versionRepo postgres.TestCaseVersionRepository) Service {
 	return &service{
-		repo:     repo,
-		stepRepo: stepRepo,
+		repo:        repo,
+		stepRepo:    stepRepo,
+		versionRepo: versionRepo,
 	}
 }
 
@@ -215,12 +220,14 @@ func (s *service) UpdateTestCase(id string, req *UpdateTestCaseRequest) (*testca
 
 	// 记录是否有内容变更
 	contentChanged := false
+	changeLog := ""
 
 	// 更新字段
 	if req.AppVersionID != nil {
 		tc.AppVersionID = *req.AppVersionID
 	}
 	if req.Title != nil && *req.Title != tc.Title {
+		changeLog += "标题已更新; "
 		tc.Title = *req.Title
 		contentChanged = true
 	}
@@ -231,10 +238,12 @@ func (s *service) UpdateTestCase(id string, req *UpdateTestCaseRequest) (*testca
 		tc.ModuleID = req.ModuleID
 	}
 	if req.Precondition != nil && *req.Precondition != tc.Precondition {
+		changeLog += "前置条件已更新; "
 		tc.Precondition = *req.Precondition
 		contentChanged = true
 	}
 	if req.ExpectedResult != nil && *req.ExpectedResult != tc.ExpectedResult {
+		changeLog += "预期结果已更新; "
 		tc.ExpectedResult = *req.ExpectedResult
 		contentChanged = true
 	}
@@ -246,12 +255,6 @@ func (s *service) UpdateTestCase(id string, req *UpdateTestCaseRequest) (*testca
 	}
 	if req.Status != nil {
 		tc.Status = *req.Status
-	}
-
-	// 如果内容有变更，版本号加 1
-	if contentChanged {
-		tc.Version++
-		tc.SyncedToVector = false
 	}
 
 	// 更新测试步骤
@@ -270,12 +273,30 @@ func (s *service) UpdateTestCase(id string, req *UpdateTestCaseRequest) (*testca
 		if err := s.stepRepo.UpdateBatch(steps); err != nil {
 			return nil, err
 		}
+		changeLog += "测试步骤已更新; "
 		contentChanged = true
 	}
 
-	// 更新测试用例
-	if err := s.repo.Update(tc); err != nil {
-		return nil, err
+	// 如果内容有变更，版本号加 1 并创建版本记录
+	if contentChanged {
+		tc.Version++
+		tc.SyncedToVector = false
+
+		// 先更新测试用例
+		if err := s.repo.Update(tc); err != nil {
+			return nil, err
+		}
+
+		// 创建版本记录
+		createdBy := "system"
+		if err := s.createVersion(tc, changeLog, createdBy); err != nil {
+			// 版本记录创建失败不影响主流程，只记录错误
+		}
+	} else {
+		// 没有内容变更，只更新测试用例
+		if err := s.repo.Update(tc); err != nil {
+			return nil, err
+		}
 	}
 
 	// 重新查询以获取关联数据
@@ -350,4 +371,83 @@ func (s *service) RemoveTestCaseTag(testCaseID, tagID string) error {
 
 	// 移除标签关联
 	return s.repo.RemoveTag(testCaseID, tagID)
+}
+
+
+// createVersion 创建版本记录（内部方法）
+func (s *service) createVersion(tc *testcase.TestCase, changeLog string, createdBy string) error {
+	// 获取测试步骤
+	steps, err := s.stepRepo.GetByTestCaseID(tc.ID)
+	if err != nil {
+		return err
+	}
+
+	// 构建快照（包含测试步骤）
+	snapshot := map[string]interface{}{
+		"title":           tc.Title,
+		"precondition":    tc.Precondition,
+		"expected_result": tc.ExpectedResult,
+		"priority":        tc.Priority,
+		"type":            tc.Type,
+		"steps":           steps,
+	}
+
+	// 将快照转换为 JSON
+	snapshotJSON, err := json.Marshal(snapshot)
+	if err != nil {
+		return err
+	}
+
+	version := &testcase.TestCaseVersion{
+		ID:             uuid.New().String(),
+		TestCaseID:     tc.ID,
+		Version:        tc.Version,
+		Title:          tc.Title,
+		Precondition:   tc.Precondition,
+		ExpectedResult: tc.ExpectedResult,
+		Priority:       tc.Priority,
+		Type:           tc.Type,
+		ChangeLog:      changeLog,
+		Snapshot:       snapshotJSON,
+		CreatedBy:      createdBy,
+		CreatedAt:      time.Now(),
+	}
+
+	return s.versionRepo.Create(version)
+}
+
+// GetTestCaseVersions 获取测试用例版本列表
+func (s *service) GetTestCaseVersions(testCaseID string) ([]*testcase.TestCaseVersion, error) {
+	// 检查测试用例是否存在
+	_, err := s.repo.GetByID(testCaseID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("test case not found")
+		}
+		return nil, err
+	}
+
+	return s.versionRepo.GetByTestCaseID(testCaseID)
+}
+
+// GetTestCaseVersion 获取测试用例特定版本
+func (s *service) GetTestCaseVersion(testCaseID string, version int) (*testcase.TestCaseVersion, error) {
+	// 检查测试用例是否存在
+	_, err := s.repo.GetByID(testCaseID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("test case not found")
+		}
+		return nil, err
+	}
+
+	v, err := s.versionRepo.GetByVersion(testCaseID, version)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("version not found")
+		}
+		return nil, err
+	}
+
+	return v, nil
 }

@@ -24,13 +24,14 @@ func SetupRouter(router *gin.Engine, db *gorm.DB) {
 	prdVersionRepo := postgres.NewPRDVersionRepository(db)
 	testCaseRepo := postgres.NewTestCaseRepository(db)
 	testStepRepo := postgres.NewTestStepRepository(db)
+	testCaseVersionRepo := postgres.NewTestCaseVersionRepository(db)
 
 	// 创建服务
 	projectSvc := projectService.NewService(projectRepo)
 	moduleSvc := moduleService.NewService(moduleRepo)
 	tagSvc := tagService.NewService(tagRepo)
 	prdSvc := prdService.NewService(prdRepo, prdVersionRepo)
-	testCaseSvc := testcaseService.NewService(testCaseRepo, testStepRepo)
+	testCaseSvc := testcaseService.NewService(testCaseRepo, testStepRepo, testCaseVersionRepo)
 
 	// 创建处理器
 	projectHandler := handler.NewProjectHandler(projectSvc)
@@ -119,6 +120,10 @@ func SetupRouter(router *gin.Engine, db *gorm.DB) {
 				// 测试用例标签管理
 				testcases.POST("/:testcase_id/tags", testCaseHandler.AddTestCaseTag)
 				testcases.DELETE("/:testcase_id/tags/:tag_id", testCaseHandler.RemoveTestCaseTag)
+				
+				// 测试用例版本管理
+				testcases.GET("/:testcase_id/versions", testCaseHandler.GetTestCaseVersions)
+				testcases.GET("/:testcase_id/versions/:version", testCaseHandler.GetTestCaseVersion)
 			}
 		}
 	}

@@ -1,46 +1,46 @@
-# 测试数据库连接脚本
-Write-Host "正在测试数据库连接..." -ForegroundColor Cyan
+# Test Database Connection Script
+Write-Host "Testing database connection..." -ForegroundColor Cyan
 
-# 检查配置文件
+# Check config file
 if (-not (Test-Path "config.yaml")) {
-    Write-Host "错误: 找不到 config.yaml 文件" -ForegroundColor Red
+    Write-Host "Error: config.yaml not found" -ForegroundColor Red
     exit 1
 }
 
-# 编译服务器
-Write-Host "正在编译服务器..." -ForegroundColor Yellow
+# Build server
+Write-Host "Building server..." -ForegroundColor Yellow
 go build -o bin/server.exe ./cmd/server
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "编译失败" -ForegroundColor Red
+    Write-Host "Build failed" -ForegroundColor Red
     exit 1
 }
 
-Write-Host "编译成功！" -ForegroundColor Green
+Write-Host "Build successful!" -ForegroundColor Green
 
-# 启动服务器（后台运行）
-Write-Host "正在启动服务器..." -ForegroundColor Yellow
+# Start server (background)
+Write-Host "Starting server..." -ForegroundColor Yellow
 $process = Start-Process -FilePath ".\bin\server.exe" -PassThru -NoNewWindow
 
-# 等待服务器启动
+# Wait for server to start
 Start-Sleep -Seconds 3
 
-# 测试健康检查端点
-Write-Host "正在测试健康检查端点..." -ForegroundColor Yellow
+# Test health check endpoint
+Write-Host "Testing health check endpoint..." -ForegroundColor Yellow
 try {
     $response = Invoke-RestMethod -Uri "http://localhost:8080/health" -Method Get
-    Write-Host "健康检查响应:" -ForegroundColor Green
+    Write-Host "Health check response:" -ForegroundColor Green
     $response | ConvertTo-Json -Depth 3
     
     if ($response.database -eq $true) {
-        Write-Host "`n✅ 数据库连接成功！" -ForegroundColor Green
+        Write-Host "`nDatabase connection successful!" -ForegroundColor Green
     } else {
-        Write-Host "`n❌ 数据库连接失败！" -ForegroundColor Red
+        Write-Host "`nDatabase connection failed!" -ForegroundColor Red
     }
 } catch {
-    Write-Host "健康检查失败: $_" -ForegroundColor Red
+    Write-Host "Health check failed: $_" -ForegroundColor Red
 }
 
-# 停止服务器
-Write-Host "`n正在停止服务器..." -ForegroundColor Yellow
+# Stop server
+Write-Host "`nStopping server..." -ForegroundColor Yellow
 Stop-Process -Id $process.Id -Force
-Write-Host "测试完成！" -ForegroundColor Cyan
+Write-Host "Test completed!" -ForegroundColor Cyan

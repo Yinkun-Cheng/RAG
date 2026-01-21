@@ -97,6 +97,143 @@ export default function Settings() {
       </div>
 
       <Tabs defaultActiveKey="weaviate">
+        {/* 搜索配置 */}
+        <TabPane tab="搜索配置" key="search">
+          <Card>
+            <Alert
+              message="搜索参数配置"
+              description="配置语义搜索和混合检索的默认参数，这些参数会影响所有搜索请求的默认行为"
+              type="info"
+              showIcon
+              className="mb-6"
+            />
+
+            <Form form={form} layout="vertical">
+              <h3 className="text-lg font-bold mb-4">混合检索配置</h3>
+
+              <Form.Item
+                name="search_enable_hybrid"
+                label="启用混合检索"
+                valuePropName="checked"
+                initialValue={true}
+                tooltip="混合检索结合向量检索和 BM25 关键词检索，提供更好的搜索效果"
+              >
+                <Switch checkedChildren="开启" unCheckedChildren="关闭" />
+              </Form.Item>
+
+              <Form.Item
+                name="search_default_alpha"
+                label="默认混合检索权重（Alpha）"
+                initialValue={1.0}
+                tooltip="0 = 纯 BM25 关键词检索，1 = 纯向量检索，0.5 = 各占 50%"
+              >
+                <div>
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-xs text-gray-500 w-16">关键词</span>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.1"
+                      defaultValue={1.0}
+                      onChange={e => form.setFieldValue('search_default_alpha', parseFloat(e.target.value))}
+                      className="flex-1"
+                    />
+                    <span className="text-xs text-gray-500 w-12">向量</span>
+                    <InputNumber
+                      min={0}
+                      max={1}
+                      step={0.1}
+                      defaultValue={1.0}
+                      style={{ width: 100 }}
+                    />
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    💡 推荐：纯向量检索（1.0）适合语义搜索，混合检索（0.5-0.8）适合兼顾精确匹配
+                  </div>
+                </div>
+              </Form.Item>
+
+              <Divider />
+
+              <h3 className="text-lg font-bold mb-4">搜索结果配置</h3>
+
+              <Form.Item
+                name="search_default_limit"
+                label="默认返回结果数量"
+                initialValue={10}
+                tooltip="每次搜索默认返回的结果数量"
+              >
+                <InputNumber min={5} max={50} style={{ width: '100%' }} />
+              </Form.Item>
+
+              <Form.Item
+                name="search_default_threshold"
+                label="默认相似度阈值"
+                initialValue={0.7}
+                tooltip="只返回相似度大于此阈值的结果，范围 0.5-0.95"
+              >
+                <div>
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-xs text-gray-500 w-16">宽松</span>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="0.95"
+                      step="0.05"
+                      defaultValue={0.7}
+                      onChange={e => form.setFieldValue('search_default_threshold', parseFloat(e.target.value))}
+                      className="flex-1"
+                    />
+                    <span className="text-xs text-gray-500 w-12">严格</span>
+                    <InputNumber
+                      min={0.5}
+                      max={0.95}
+                      step={0.05}
+                      defaultValue={0.7}
+                      style={{ width: 100 }}
+                    />
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    💡 推荐：0.7 是一个平衡的阈值，0.8+ 更严格但结果更精确
+                  </div>
+                </div>
+              </Form.Item>
+
+              <Divider />
+
+              <h3 className="text-lg font-bold mb-4">使用说明</h3>
+              <Alert
+                message="参数说明"
+                description={
+                  <div className="mt-2 space-y-2">
+                    <p>
+                      <strong>混合检索权重（Alpha）</strong>：控制向量检索和关键词检索的比例
+                    </p>
+                    <ul className="list-disc list-inside ml-4 space-y-1">
+                      <li>Alpha = 1.0：纯向量检索，适合语义搜索（如"登录相关的测试用例"）</li>
+                      <li>Alpha = 0.5：混合检索，兼顾语义和精确匹配</li>
+                      <li>Alpha = 0.0：纯 BM25 关键词检索，适合精确匹配（如"PRD-001"）</li>
+                    </ul>
+                    <p className="mt-3">
+                      <strong>相似度阈值</strong>：过滤低相似度的结果
+                    </p>
+                    <ul className="list-disc list-inside ml-4 space-y-1">
+                      <li>0.5-0.6：宽松，返回更多结果但可能不太相关</li>
+                      <li>0.7-0.8：平衡，推荐使用</li>
+                      <li>0.85+：严格，只返回高度相关的结果</li>
+                    </ul>
+                    <p className="mt-3 text-sm text-gray-500">
+                      💡 提示：用户在搜索页面可以临时调整这些参数，这里配置的是全局默认值
+                    </p>
+                  </div>
+                }
+                type="success"
+              />
+            </Form>
+          </Card>
+        </TabPane>
+
         {/* LLM 大模型配置 */}
         <TabPane tab="LLM 大模型" key="llm">
           <Card>

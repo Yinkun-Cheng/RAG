@@ -13,6 +13,7 @@ import {
   Space,
   Collapse,
   Divider,
+  InputNumber,
 } from 'antd';
 import {
   SearchOutlined,
@@ -57,6 +58,8 @@ export default function Search() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [alpha, setAlpha] = useState<number>(1.0); // 混合检索权重，默认纯向量
+  const [scoreThreshold, setScoreThreshold] = useState<number>(0.7); // 相似度阈值
 
   const projectVersions = mockAppVersions.filter(v => v.projectId === projectId);
 
@@ -184,6 +187,8 @@ export default function Search() {
     setModuleId('');
     setPriority('');
     setStatus('');
+    setAlpha(1.0);
+    setScoreThreshold(0.7);
     setResults([]);
   };
 
@@ -275,7 +280,8 @@ export default function Search() {
 
           {/* 高级筛选 */}
           {showFilters && (
-            <div className="bg-gray-50 p-4 rounded">
+            <div className="bg-gray-50 p-4 rounded space-y-4">
+              {/* 第一行：常规筛选 */}
               <div className="grid grid-cols-4 gap-4">
                 <div>
                   <div className="mb-2 text-sm text-gray-600">App 版本：</div>
@@ -336,6 +342,86 @@ export default function Search() {
                       { label: '已归档', value: 'archived' },
                     ]}
                   />
+                </div>
+              </div>
+
+              <Divider style={{ margin: '12px 0' }} />
+
+              {/* 第二行：搜索参数配置 */}
+              <div>
+                <div className="mb-3 text-sm font-medium text-gray-700">搜索参数配置</div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="mb-2 text-sm text-gray-600 flex items-center gap-2">
+                      混合检索权重（Alpha）：
+                      <span className="text-xs text-gray-400">
+                        {alpha === 1.0
+                          ? '纯向量检索'
+                          : alpha === 0
+                          ? '纯关键词检索'
+                          : `向量 ${(alpha * 100).toFixed(0)}% + 关键词 ${((1 - alpha) * 100).toFixed(0)}%`}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-gray-500 w-16">关键词</span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.1"
+                        value={alpha}
+                        onChange={e => setAlpha(parseFloat(e.target.value))}
+                        className="flex-1"
+                      />
+                      <span className="text-xs text-gray-500 w-12">向量</span>
+                      <InputNumber
+                        min={0}
+                        max={1}
+                        step={0.1}
+                        value={alpha}
+                        onChange={value => setAlpha(value || 1.0)}
+                        style={{ width: 80 }}
+                        size="small"
+                      />
+                    </div>
+                    <div className="mt-1 text-xs text-gray-400">
+                      💡 向量检索适合语义搜索，关键词检索适合精确匹配
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="mb-2 text-sm text-gray-600">
+                      相似度阈值：
+                      <span className="text-xs text-gray-400 ml-2">
+                        只显示相似度 ≥ {(scoreThreshold * 100).toFixed(0)}% 的结果
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-gray-500 w-16">宽松</span>
+                      <input
+                        type="range"
+                        min="0.5"
+                        max="0.95"
+                        step="0.05"
+                        value={scoreThreshold}
+                        onChange={e => setScoreThreshold(parseFloat(e.target.value))}
+                        className="flex-1"
+                      />
+                      <span className="text-xs text-gray-500 w-12">严格</span>
+                      <InputNumber
+                        min={0.5}
+                        max={0.95}
+                        step={0.05}
+                        value={scoreThreshold}
+                        onChange={value => setScoreThreshold(value || 0.7)}
+                        style={{ width: 80 }}
+                        size="small"
+                      />
+                    </div>
+                    <div className="mt-1 text-xs text-gray-400">
+                      💡 阈值越高，结果越精确但数量可能越少
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

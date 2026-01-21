@@ -9,6 +9,8 @@ import (
 	moduleService "rag-backend/internal/service/module"
 	prdService "rag-backend/internal/service/prd"
 	projectService "rag-backend/internal/service/project"
+	searchService "rag-backend/internal/service/search"
+	settingsService "rag-backend/internal/service/settings"
 	statisticsService "rag-backend/internal/service/statistics"
 	tagService "rag-backend/internal/service/tag"
 	testcaseService "rag-backend/internal/service/testcase"
@@ -37,6 +39,8 @@ func SetupRouter(router *gin.Engine, db *gorm.DB, weaviateClient *weaviate.Clien
 	prdSvc := prdService.NewService(prdRepo, prdVersionRepo, vectorRepo)
 	testCaseSvc := testcaseService.NewService(testCaseRepo, testStepRepo, testCaseVersionRepo, vectorRepo)
 	statisticsSvc := statisticsService.NewService(db)
+	searchSvc := searchService.NewSearchService(db, weaviateClient, embeddingManager)
+	settingsSvc := settingsService.NewSettingsService(db)
 
 	// 创建处理器
 	projectHandler := handler.NewProjectHandler(projectSvc)
@@ -45,10 +49,21 @@ func SetupRouter(router *gin.Engine, db *gorm.DB, weaviateClient *weaviate.Clien
 	prdHandler := handler.NewPRDHandler(prdSvc)
 	testCaseHandler := handler.NewTestCaseHandler(testCaseSvc)
 	statisticsHandler := handler.NewStatisticsHandler(statisticsSvc)
+	searchHandler := handler.NewSearchHandler(searchSvc)
+	settingsHandler := handler.NewSettingsHandler(settingsSvc)
 
 	// API v1 路由组
 	v1 := router.Group("/api/v1")
 	{
+		// 全局设置路由（不需要项目 ID）
+		settings := v1.Group("/settings")
+		{
+			settings.GET("", settingsHandler.GetAllSettings)
+			settings.GET("/:category", settingsHandler.GetSettingsByCategory)
+			settings.PUT("/:key", settingsHandler.UpdateSetting)
+			settings.PUT("/batch", settingsHandler.BatchUpdateSettings)
+		}
+
 		// 项目管理路由（不带参数的路由）
 		projects := v1.Group("/projects")
 		{
@@ -138,6 +153,13 @@ func SetupRouter(router *gin.Engine, db *gorm.DB, weaviateClient *weaviate.Clien
 				testcases.GET("/:testcase_id/versions", testCaseHandler.GetTestCaseVersions)
 				testcases.GET("/:testcase_id/versions/:version", testCaseHandler.GetTestCaseVersion)
 			}
+
+			// 语义搜索路由
+			projectRoutes.POST("/search", searchHandler.Search)
+			
+			// 推荐路由
+			projectRoutes.GET("/prds/:prd_id/recommendations", searchHandler.GetPRDRecommendations)
+			projectRoutes.GET("/testcases/:testcase_id/recommendations", searchHandler.GetTestCaseRecommendations)
 		}
 	}
 }

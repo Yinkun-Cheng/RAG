@@ -188,18 +188,18 @@
 ## 阶段 9：语义检索 API
 
 ### 9.1 检索功能
-- [ ] 9.1.1 实现语义检索 API（POST /api/v1/projects/:project_id/search）
-  - [ ] 支持自然语言查询
-  - [ ] 支持类型筛选（PRD/测试用例/全部）
-  - [ ] 支持结构化过滤
-  - [ ] 支持相似度阈值
-  - [ ] 支持结果数量限制
-- [ ] 9.1.2 实现结果格式化
-- [ ] 9.1.3 实现关键词高亮
+- [x] 9.1.1 实现语义检索 API（POST /api/v1/projects/:project_id/search）✅
+  - [x] 支持自然语言查询 ✅
+  - [x] 支持类型筛选（PRD/测试用例/全部）✅
+  - [x] 支持结构化过滤 ✅
+  - [x] 支持相似度阈值 ✅
+  - [x] 支持结果数量限制 ✅
+- [x] 9.1.2 实现结果格式化 ✅
+- [x] 9.1.3 实现关键词高亮 ✅
 
 ### 9.2 关联推荐
-- [ ] 9.2.1 实现基于 PRD 的推荐 API（GET /api/v1/projects/:project_id/prds/:id/recommendations）
-- [ ] 9.2.2 实现基于测试用例的推荐 API（GET /api/v1/projects/:project_id/testcases/:id/recommendations）
+- [x] 9.2.1 实现基于 PRD 的推荐 API（GET /api/v1/projects/:project_id/prds/:id/recommendations）✅
+- [x] 9.2.2 实现基于测试用例的推荐 API（GET /api/v1/projects/:project_id/testcases/:id/recommendations）✅
 
 ## 阶段 10：影响分析功能
 
@@ -289,10 +289,10 @@
 ## 进度追踪
 
 - **总任务数**: 135+ (已移除文件上传相关任务)
-- **已完成**: 120 ✅
+- **已完成**: 130 ✅
 - **进行中**: 0
-- **待开始**: 15+
-- **完成度**: 89%
+- **待开始**: 5+
+- **完成度**: 96%
 
 ### 最新进度（2026-01-21）
 ✅ **阶段 1 完成** - 基础设施搭建
@@ -350,7 +350,13 @@
   - PRD 和测试用例的自动向量化同步
   - 异步同步机制和状态追踪
   - 服务器成功启动，所有组件健康检查通过
-- [ ] **Milestone 5**: 语义检索完成（阶段 9）
+- [x] **Milestone 5**: 语义检索完成（阶段 9）✅（2026-01-21）
+  - 实现了语义检索 API（支持自然语言查询、类型筛选、结构化过滤）
+  - 实现了基于 PRD 的推荐 API
+  - 实现了基于测试用例的推荐 API
+  - 实现了结果格式化和关键词高亮
+  - 修复了路由冲突问题
+  - 完善了 buildTestCaseContent 和 extractHighlights 方法
 - [ ] **Milestone 6**: 高级功能完成（阶段 10-11）
 - [ ] **Milestone 7**: 测试与部署完成（阶段 12-13）
 
@@ -369,7 +375,20 @@
 - 实现了 PRD 和测试用例的自动向量化同步（异步）
 - 实现了同步状态追踪（synced_to_vector, sync_status, last_synced_at）
 - 服务器成功启动，所有组件健康检查通过
-- **完成度**: 89% (120/135+ 任务)
+
+✅ **完成阶段 9：语义检索 API**
+- 实现了语义检索 API（POST /api/v1/projects/:id/search）
+  - 支持自然语言查询
+  - 支持类型筛选（PRD/测试用例/全部）
+  - 支持结构化过滤（项目ID、模块ID、版本ID、状态）
+  - 支持相似度阈值配置
+  - 支持结果数量限制
+- 实现了基于 PRD 的推荐 API（GET /api/v1/projects/:id/prds/:prd_id/recommendations）
+- 实现了基于测试用例的推荐 API（GET /api/v1/projects/:id/testcases/:testcase_id/recommendations）
+- 实现了结果格式化和关键词高亮
+- 修复了路由冲突问题（:doc_id 与 :prd_id/:testcase_id 冲突）
+- 完善了 buildTestCaseContent 和 extractHighlights 方法
+- **完成度**: 96% (130/135+ 任务)
 
 **技术细节**:
 - Weaviate 版本: v1.24.8

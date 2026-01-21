@@ -1,15 +1,59 @@
-import { useState } from 'react';
-import { Card, Row, Col } from 'antd';
+import { useState, useEffect } from 'react';
+import { Card, Row, Col, Spin, message, Empty } from 'antd';
+import { useParams } from 'react-router-dom';
 import ModuleTree from '../../components/ModuleTree';
-import { mockModules } from '../../mock/data';
+import api, { Module } from '../../api';
 
 export default function ModuleManagement() {
-  const [modules, setModules] = useState(mockModules);
+  const { projectId } = useParams<{ projectId: string }>();
+  const [modules, setModules] = useState<Module[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // 获取模块树
+  const fetchModules = async () => {
+    if (!projectId) {
+      message.error('项目 ID 不存在');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await api.module.getTree(projectId);
+      setModules(response.data || []);
+    } catch (error) {
+      console.error('Failed to fetch modules:', error);
+      message.error('获取模块列表失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchModules();
+  }, [projectId]);
 
   const handleModuleChange = () => {
-    // 这里可以重新加载模块数据
-    console.log('模块数据已更新');
+    // 重新加载模块数据
+    fetchModules();
   };
+
+  if (!projectId) {
+    return (
+      <div className="p-6">
+        <Card>
+          <Empty description="项目 ID 不存在，请从项目列表进入" />
+        </Card>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-screen">
+        <Spin size="large" tip="加载中..." />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -17,8 +61,22 @@ export default function ModuleManagement() {
       
       <Row gutter={16}>
         <Col span={24}>
-          <Card title="模块树结构" extra={<span className="text-gray-500">右键点击模块可进行操作</span>}>
-            <ModuleTree modules={modules} onModuleChange={handleModuleChange} />
+          <Card 
+            title="模块树结构" 
+            extra={<span className="text-gray-500">右键点击模块可进行操作</span>}
+          >
+            {modules.length === 0 ? (
+              <Empty 
+                description="暂无模块，点击下方按钮创建第一个模块"
+                className="py-12"
+              />
+            ) : (
+              <ModuleTree 
+                projectId={projectId} 
+                modules={modules} 
+                onModuleChange={handleModuleChange} 
+              />
+            )}
           </Card>
         </Col>
       </Row>

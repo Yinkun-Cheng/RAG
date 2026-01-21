@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Card, Button, Modal, Form, Input, Empty, Row, Col, Statistic } from 'antd';
+import { useState, useEffect } from 'react';
+import { Card, Button, Modal, Form, Input, Empty, Row, Col, Statistic, Spin, message } from 'antd';
 import {
   PlusOutlined,
   FolderOpenOutlined,
@@ -9,67 +9,71 @@ import {
   CheckCircleOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import api, { Project as APIProject } from '../../api';
 
-interface Project {
-  id: string;
-  name: string;
-  description: string;
-  createdAt: string;
-  prdCount: number;
-  testCaseCount: number;
+interface Project extends APIProject {
+  prdCount?: number;
+  testCaseCount?: number;
 }
-
-// Mock 项目数据
-const mockProjects: Project[] = [
-  {
-    id: 'proj-1',
-    name: '电商平台',
-    description: '电商平台核心功能开发',
-    createdAt: '2025-01-01',
-    prdCount: 6,
-    testCaseCount: 15,
-  },
-  {
-    id: 'proj-2',
-    name: '移动支付系统',
-    description: '移动支付系统需求与测试管理',
-    createdAt: '2025-01-10',
-    prdCount: 3,
-    testCaseCount: 8,
-  },
-];
 
 export default function ProjectList() {
   const navigate = useNavigate();
-  const [projects, setProjects] = useState<Project[]>(mockProjects);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [form] = Form.useForm();
 
-  const handleCreateOrUpdate = () => {
-    form.validateFields().then(values => {
+  // 获取项目列表
+  const fetchProjects = async () => {
+    setLoading(true);
+    try {
+      const response = await api.project.list();
+      setProjects(response.data.items || []);
+    } catch (error) {
+      console.error('Failed to fetch projects:', error);
+      message.error('获取项目列表失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+  const handleCreateOrUpdate = async () => {
+    try {
+      const values = await form.validateFields();
+      setSubmitting(true);
+
       if (editingProject) {
         // 更新项目
-        setProjects(
-          projects.map(p =>
-            p.id === editingProject.id ? { ...p, ...values } : p
-          )
-        );
+        await api.project.update(editingProject.id, {
+          name: values.name,
+          description: values.description,
+        });
+        message.success('项目更新成功');
       } else {
         // 创建新项目
-        const newProject: Project = {
-          id: `proj-${Date.now()}`,
-          ...values,
-          createdAt: new Date().toISOString().split('T')[0],
-          prdCount: 0,
-          testCaseCount: 0,
-        };
-        setProjects([...projects, newProject]);
+        await api.project.create({
+          name: values.name,
+          description: values.description,
+        });
+        message.success('项目创建成功');
       }
+
       setModalVisible(false);
       setEditingProject(null);
       form.resetFields();
-    });
+      fetchProjects(); // 重新获取项目列表
+    } catch (error) {
+      console.error('Failed to create/update project:', error);
+      message.error(editingProject ? '项目更新失败' : '项目创建失败');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleEdit = (project: Project) => {
@@ -85,8 +89,15 @@ export default function ProjectList() {
       okText: '确认',
       cancelText: '取消',
       okButtonProps: { danger: true },
-      onOk: () => {
-        setProjects(projects.filter(p => p.id !== projectId));
+      onOk: async () => {
+        try {
+          await api.project.delete(projectId);
+          message.success('项目删除成功');
+          fetchProjects(); // 重新获取项目列表
+        } catch (error) {
+          console.error('Failed to delete project:', error);
+          message.error('项目删除失败');
+        }
       },
     });
   };
@@ -97,8 +108,16 @@ export default function ProjectList() {
 
   // 计算统计数据
   const totalProjects = projects.length;
-  const totalPRDs = projects.reduce((sum, p) => sum + p.prdCount, 0);
-  const totalTestCases = projects.reduce((sum, p) => sum + p.testCaseCount, 0);
+  const totalPRDs = projects.reduce((sum, p) => sum + (p.prdCount || 0), 0);
+  const totalTestCases = projects.reduce((sum, p) => sum + (p.testCaseCount || 0), 0);
+
+  if (loading) {
+    return (
+      <div className="p-8 bg-gray-50 min-h-screen flex items-center justify-center">
+        <Spin size="large" tip="加载中..." />
+      </div>
+    );
+  }
 
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
@@ -209,11 +228,11 @@ export default function ProjectList() {
                     {project.description}
                   </p>
                   <div className="flex justify-between text-sm text-gray-500 mb-2">
-                    <span>PRD: {project.prdCount}</span>
-                    <span>测试用例: {project.testCaseCount}</span>
+                    <span>PRD: {project.prdCount || 0}</span>
+                    <span>测试用例: {project.testCaseCount || 0}</span>
                   </div>
                   <div className="text-xs text-gray-400">
-                    创建于 {project.createdAt}
+                    创建于 {new Date(project.created_at).toLocaleDateString('zh-CN')}
                   </div>
                 </Card>
               </Col>
@@ -234,6 +253,7 @@ export default function ProjectList() {
         }}
         okText="确定"
         cancelText="取消"
+        confirmLoading={submitting}
       >
         <Form form={form} layout="vertical" className="mt-4">
           <Form.Item

@@ -3,7 +3,9 @@ package router
 import (
 	"rag-backend/internal/api/handler"
 	"rag-backend/internal/api/middleware"
+	"rag-backend/internal/pkg/weaviate"
 	"rag-backend/internal/repository/postgres"
+	weaviateRepo "rag-backend/internal/repository/weaviate"
 	moduleService "rag-backend/internal/service/module"
 	prdService "rag-backend/internal/service/prd"
 	projectService "rag-backend/internal/service/project"
@@ -16,7 +18,7 @@ import (
 )
 
 // SetupRouter 设置路由
-func SetupRouter(router *gin.Engine, db *gorm.DB) {
+func SetupRouter(router *gin.Engine, db *gorm.DB, weaviateClient *weaviate.Client, embeddingManager *weaviate.EmbeddingManager) {
 	// 创建仓储
 	projectRepo := postgres.NewProjectRepository(db)
 	moduleRepo := postgres.NewModuleRepository(db)
@@ -26,13 +28,14 @@ func SetupRouter(router *gin.Engine, db *gorm.DB) {
 	testCaseRepo := postgres.NewTestCaseRepository(db)
 	testStepRepo := postgres.NewTestStepRepository(db)
 	testCaseVersionRepo := postgres.NewTestCaseVersionRepository(db)
+	vectorRepo := weaviateRepo.NewVectorRepository(weaviateClient, embeddingManager.GetService())
 
 	// 创建服务
 	projectSvc := projectService.NewService(projectRepo)
 	moduleSvc := moduleService.NewService(moduleRepo)
 	tagSvc := tagService.NewService(tagRepo)
-	prdSvc := prdService.NewService(prdRepo, prdVersionRepo)
-	testCaseSvc := testcaseService.NewService(testCaseRepo, testStepRepo, testCaseVersionRepo)
+	prdSvc := prdService.NewService(prdRepo, prdVersionRepo, vectorRepo)
+	testCaseSvc := testcaseService.NewService(testCaseRepo, testStepRepo, testCaseVersionRepo, vectorRepo)
 	statisticsSvc := statisticsService.NewService(db)
 
 	// 创建处理器

@@ -13,7 +13,7 @@ database:
   
   weaviate:
     host: localhost
-    port: 8080
+    port: 8009
     scheme: http
     api_key: ""
 

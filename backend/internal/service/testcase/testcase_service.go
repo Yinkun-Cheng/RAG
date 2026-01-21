@@ -1,6 +1,7 @@
 package testcase
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"time"
@@ -8,6 +9,7 @@ import (
 	"rag-backend/internal/domain/common"
 	"rag-backend/internal/domain/testcase"
 	"rag-backend/internal/repository/postgres"
+	weaviateRepo "rag-backend/internal/repository/weaviate"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -31,14 +33,16 @@ type service struct {
 	repo        postgres.TestCaseRepository
 	stepRepo    postgres.TestStepRepository
 	versionRepo postgres.TestCaseVersionRepository
+	vectorRepo  weaviateRepo.VectorRepository
 }
 
 // NewService 创建测试用例服务实例
-func NewService(repo postgres.TestCaseRepository, stepRepo postgres.TestStepRepository, versionRepo postgres.TestCaseVersionRepository) Service {
+func NewService(repo postgres.TestCaseRepository, stepRepo postgres.TestStepRepository, versionRepo postgres.TestCaseVersionRepository, vectorRepo weaviateRepo.VectorRepository) Service {
 	return &service{
 		repo:        repo,
 		stepRepo:    stepRepo,
 		versionRepo: versionRepo,
+		vectorRepo:  vectorRepo,
 	}
 }
 
@@ -138,6 +142,9 @@ func (s *service) CreateTestCase(projectID string, req *CreateTestCaseRequest) (
 	if err := s.repo.Create(tc); err != nil {
 		return nil, err
 	}
+
+	// 异步同步到 Weaviate
+	go s.syncTestCaseToVector(tc)
 
 	// 创建测试步骤
 	if len(req.Steps) > 0 {
@@ -287,6 +294,9 @@ func (s *service) UpdateTestCase(id string, req *UpdateTestCaseRequest) (*testca
 			return nil, err
 		}
 
+		// 异步同步到 Weaviate
+		go s.syncTestCaseToVector(tc)
+
 		// 创建版本记录
 		createdBy := "system"
 		if err := s.createVersion(tc, changeLog, createdBy); err != nil {
@@ -306,7 +316,7 @@ func (s *service) UpdateTestCase(id string, req *UpdateTestCaseRequest) (*testca
 // DeleteTestCase 删除测试用例
 func (s *service) DeleteTestCase(id string) error {
 	// 检查是否存在
-	_, err := s.repo.GetByID(id)
+	tc, err := s.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("test case not found")
@@ -314,7 +324,15 @@ func (s *service) DeleteTestCase(id string) error {
 		return err
 	}
 
-	return s.repo.Delete(id)
+	// 从 PostgreSQL 删除
+	if err := s.repo.Delete(id); err != nil {
+		return err
+	}
+
+	// 异步从 Weaviate 删除
+	go s.deleteTestCaseFromVector(tc.ID)
+
+	return nil
 }
 
 // BatchDeleteTestCases 批量删除测试用例
@@ -450,4 +468,43 @@ func (s *service) GetTestCaseVersion(testCaseID string, version int) (*testcase.
 	}
 
 	return v, nil
+}
+
+// syncTestCaseToVector 异步同步测试用例到 Weaviate
+func (s *service) syncTestCaseToVector(tc *testcase.TestCase) {
+	ctx := context.Background()
+
+	err := s.vectorRepo.SyncTestCase(
+		ctx,
+		tc.ID,
+		tc.ProjectID,
+		tc.ModuleID,
+		tc.PRDID,
+		tc.Title,
+		tc.Priority,
+		tc.Type,
+		tc.Status,
+		tc.CreatedAt,
+	)
+
+	if err != nil {
+		// 同步失败，更新同步状态
+		syncStatus := err.Error()
+		tc.SyncedToVector = false
+		tc.SyncStatus = &syncStatus
+		s.repo.Update(tc)
+	} else {
+		// 同步成功，更新同步状态
+		now := time.Now()
+		tc.SyncedToVector = true
+		tc.SyncStatus = nil
+		tc.LastSyncedAt = &now
+		s.repo.Update(tc)
+	}
+}
+
+// deleteTestCaseFromVector 异步从 Weaviate 删除测试用例
+func (s *service) deleteTestCaseFromVector(testCaseID string) {
+	ctx := context.Background()
+	_ = s.vectorRepo.DeleteTestCase(ctx, testCaseID)
 }

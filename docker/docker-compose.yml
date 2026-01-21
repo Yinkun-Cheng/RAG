@@ -1,19 +1,34 @@
-version: '3.8'
-
 services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: rag-postgres
-    environment:
-      POSTGRES_USER: rag_user
-      POSTGRES_PASSWORD: rag_password
-      POSTGRES_DB: rag_db
+  # PostgreSQL - 已使用本地安装，无需 Docker
+  # postgres:
+  #   image: postgres:15-alpine
+  #   container_name: rag-postgres
+  #   environment:
+  #     POSTGRES_USER: rag_user
+  #     POSTGRES_PASSWORD: rag_password
+  #     POSTGRES_DB: rag_db
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   networks:
+  #     - rag-network
+
+  weaviate:
+    image: semitechnologies/weaviate:1.24.8
+    container_name: rag-weaviate
+    restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "8009:8080"  # 映射到本机 8009，避免与现有项目的 8008 冲突
+    environment:
+      QUERY_DEFAULTS_LIMIT: 20
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "true"
+      PERSISTENCE_DATA_PATH: /var/lib/weaviate
+      DEFAULT_VECTORIZER_MODULE: "none"  # 不使用内置向量化，后端自己提供向量
+      ENABLE_MODULES: ""
+      CLUSTER_HOSTNAME: "node1"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - rag-network
+      - weaviate_data:/var/lib/weaviate  # 独立的数据卷，与现有项目完全隔离
 
   # Backend service (to be added later)
   # backend:
@@ -24,7 +39,7 @@ services:
   #   ports:
   #     - "8080:8080"
   #   depends_on:
-  #     - postgres
+  #     - weaviate
   #   networks:
   #     - rag-network
 
@@ -40,8 +55,10 @@ services:
   #     - rag-network
 
 volumes:
-  postgres_data:
+  # postgres_data:  # 不需要，使用本地 PostgreSQL
+  weaviate_data:  # 独立的 Weaviate 数据卷
 
-networks:
-  rag-network:
-    driver: bridge
+# networks:
+#   rag-network:
+#     driver: bridge
+

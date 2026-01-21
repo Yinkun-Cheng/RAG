@@ -1,12 +1,14 @@
 package prd
 
 import (
+	"context"
 	"errors"
 	"time"
 
 	"rag-backend/internal/domain/common"
 	"rag-backend/internal/domain/prd"
 	"rag-backend/internal/repository/postgres"
+	weaviateRepo "rag-backend/internal/repository/weaviate"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -32,13 +34,15 @@ type Service interface {
 type service struct {
 	repo        postgres.PRDRepository
 	versionRepo postgres.PRDVersionRepository
+	vectorRepo  weaviateRepo.VectorRepository
 }
 
 // NewService 创建 PRD 文档服务实例
-func NewService(repo postgres.PRDRepository, versionRepo postgres.PRDVersionRepository) Service {
+func NewService(repo postgres.PRDRepository, versionRepo postgres.PRDVersionRepository, vectorRepo weaviateRepo.VectorRepository) Service {
 	return &service{
 		repo:        repo,
 		versionRepo: versionRepo,
+		vectorRepo:  vectorRepo,
 	}
 }
 
@@ -115,6 +119,9 @@ func (s *service) CreatePRD(projectID string, req *CreatePRDRequest) (*prd.PRDDo
 	if err := s.repo.Create(doc); err != nil {
 		return nil, err
 	}
+
+	// 异步同步到 Weaviate
+	go s.syncPRDToVector(doc)
 
 	// 重新查询以获取关联数据
 	return s.repo.GetByID(doc.ID)
@@ -235,7 +242,7 @@ func (s *service) UpdatePRD(id string, req *UpdatePRDRequest) (*prd.PRDDocument,
 // DeletePRD 删除 PRD 文档
 func (s *service) DeletePRD(id string) error {
 	// 检查是否存在
-	_, err := s.repo.GetByID(id)
+	doc, err := s.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("PRD not found")
@@ -243,7 +250,15 @@ func (s *service) DeletePRD(id string) error {
 		return err
 	}
 
-	return s.repo.Delete(id)
+	// 从 PostgreSQL 删除
+	if err := s.repo.Delete(id); err != nil {
+		return err
+	}
+
+	// 异步从 Weaviate 删除
+	go s.deletePRDFromVector(doc.ID)
+
+	return nil
 }
 
 
@@ -475,4 +490,41 @@ func (s *service) RemovePRDTag(prdID, tagID string) error {
 
 	// 移除标签关联
 	return s.repo.RemoveTag(prdID, tagID)
+}
+
+// syncPRDToVector 异步同步 PRD 到 Weaviate
+func (s *service) syncPRDToVector(doc *prd.PRDDocument) {
+	ctx := context.Background()
+
+	err := s.vectorRepo.SyncPRD(
+		ctx,
+		doc.ID,
+		doc.ProjectID,
+		doc.ModuleID,
+		doc.Title,
+		doc.Content,
+		doc.Status,
+		doc.CreatedAt,
+	)
+
+	if err != nil {
+		// 同步失败，更新同步状态
+		syncStatus := err.Error()
+		doc.SyncedToVector = false
+		doc.SyncStatus = &syncStatus
+		s.repo.Update(doc)
+	} else {
+		// 同步成功，更新同步状态
+		now := time.Now()
+		doc.SyncedToVector = true
+		doc.SyncStatus = nil
+		doc.LastSyncedAt = &now
+		s.repo.Update(doc)
+	}
+}
+
+// deletePRDFromVector 异步从 Weaviate 删除 PRD
+func (s *service) deletePRDFromVector(prdID string) {
+	ctx := context.Background()
+	_ = s.vectorRepo.DeletePRD(ctx, prdID)
 }

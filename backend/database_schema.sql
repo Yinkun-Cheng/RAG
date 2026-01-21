@@ -312,6 +312,24 @@ COMMENT ON TABLE system_settings IS '系统配置表（存储LLM配置等）';
 COMMENT ON COLUMN system_settings.setting_type IS '配置类型: string, number, boolean, json';
 
 -- ============================================
+-- 14. 全局配置表 (global_settings)
+-- ============================================
+CREATE TABLE IF NOT EXISTS global_settings (
+    id VARCHAR(36) PRIMARY KEY,
+    key VARCHAR(100) NOT NULL UNIQUE,
+    value TEXT,
+    type VARCHAR(50) NOT NULL DEFAULT 'string',
+    description TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_global_settings_key ON global_settings(key);
+
+COMMENT ON TABLE global_settings IS '全局配置表（存储 Embedding API 等全局配置）';
+COMMENT ON COLUMN global_settings.type IS '配置类型: string, number, boolean, json';
+
+-- ============================================
 -- 插入初始数据
 -- ============================================
 
@@ -353,6 +371,14 @@ INSERT INTO tags (id, project_id, name, color, created_at) VALUES
 ('6', 'proj-1', '安全相关', 'volcano', '2025-01-01 00:00:00')
 ON CONFLICT (id) DO NOTHING;
 
+-- 插入全局配置（Embedding API 配置）
+INSERT INTO global_settings (id, key, value, type, description, created_at) VALUES
+('gs-1', 'embedding_provider', 'volcano_ark', 'string', 'Embedding 服务提供商: mock, openai, volcano_ark', '2025-01-01 00:00:00'),
+('gs-2', 'embedding_api_key', '31917e10-879a-417c-9983-241904b18d5d', 'string', 'Embedding API Key', '2025-01-01 00:00:00'),
+('gs-3', 'embedding_base_url', 'https://ark.cn-beijing.volces.com', 'string', 'Embedding API Base URL', '2025-01-01 00:00:00'),
+('gs-4', 'embedding_model', 'ep-20260121110525-5mmss', 'string', 'Embedding 模型名称', '2025-01-01 00:00:00')
+ON CONFLICT (key) DO NOTHING;
+
 -- ============================================
 -- 创建更新时间自动更新触发器
 -- ============================================
@@ -391,9 +417,12 @@ CREATE TRIGGER update_test_steps_updated_at BEFORE UPDATE ON test_steps
 CREATE TRIGGER update_system_settings_updated_at BEFORE UPDATE ON system_settings
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER update_global_settings_updated_at BEFORE UPDATE ON global_settings
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 -- ============================================
 -- 完成
 -- ============================================
 -- 数据库结构创建完成
--- 包含 13 张表，完全覆盖前端所有功能
--- 支持：项目管理、App版本、模块树、标签、PRD文档、测试用例、文件上传、版本历史、系统配置
+-- 包含 14 张表，完全覆盖前端所有功能
+-- 支持：项目管理、App版本、模块树、标签、PRD文档、测试用例、文件上传、版本历史、系统配置、全局配置

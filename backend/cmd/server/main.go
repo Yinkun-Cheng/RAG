@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/signal"
@@ -11,6 +12,7 @@ import (
 	"rag-backend/internal/pkg/config"
 	"rag-backend/internal/pkg/database"
 	"rag-backend/internal/pkg/logger"
+	"rag-backend/internal/pkg/weaviate"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -61,6 +63,32 @@ func main() {
 		logger.Fatal("Database auto migration failed", zap.Error(err))
 	}
 
+	// Initialize Weaviate client
+	weaviateClient, err := weaviate.NewClient(&cfg.Database.Weaviate)
+	if err != nil {
+		logger.Fatal("Failed to create Weaviate client", zap.Error(err))
+	}
+	defer weaviateClient.Close()
+
+	// Weaviate health check
+	ctx := context.Background()
+	if err := weaviateClient.HealthCheck(ctx); err != nil {
+		logger.Fatal("Weaviate health check failed", zap.Error(err))
+	}
+
+	// Create Weaviate schemas
+	if err := weaviateClient.CreateSchemas(ctx); err != nil {
+		logger.Fatal("Failed to create Weaviate schemas", zap.Error(err))
+	}
+
+	// Initialize embedding service manager (从数据库加载配置)
+	embeddingManager := weaviate.NewEmbeddingManager(db)
+	if err := embeddingManager.InitializeService(ctx); err != nil {
+		logger.Fatal("Failed to initialize embedding service", zap.Error(err))
+	}
+
+	logger.Info("Weaviate initialized successfully")
+
 	// Set Gin mode
 	if cfg.Server.Mode == "release" {
 		gin.SetMode(gin.ReleaseMode)
@@ -85,9 +113,16 @@ func main() {
 			logger.Error("Database health check failed", zap.Error(err))
 		}
 
+		// Check Weaviate health
+		weaviateHealthy := true
+		if err := weaviateClient.HealthCheck(context.Background()); err != nil {
+			weaviateHealthy = false
+			logger.Error("Weaviate health check failed", zap.Error(err))
+		}
+
 		status := "healthy"
 		httpCode := 200
-		if !dbHealthy {
+		if !dbHealthy || !weaviateHealthy {
 			status = "unhealthy"
 			httpCode = 503
 		}
@@ -96,11 +131,12 @@ func main() {
 			"status":   status,
 			"message":  "RAG Backend is running",
 			"database": dbHealthy,
+			"weaviate": weaviateHealthy,
 		})
 	})
 
 	// Setup API routes
-	router.SetupRouter(ginRouter, db)
+	router.SetupRouter(ginRouter, db, weaviateClient, embeddingManager)
 
 	// Start server in a goroutine
 	go func() {

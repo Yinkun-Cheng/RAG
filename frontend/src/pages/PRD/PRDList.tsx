@@ -28,6 +28,7 @@ import {
   ClockCircleOutlined,
   ExpandOutlined,
   ShrinkOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { ColumnsType } from 'antd/es/table';
@@ -344,6 +345,37 @@ export default function PRDList() {
     }
   };
 
+  const handleDeleteVersion = async (versionId: string, versionName: string, prdCount: number) => {
+    if (!projectId) return;
+    
+    // 检查是否有 PRD
+    if (prdCount > 0) {
+      Modal.warning({
+        title: '无法删除版本',
+        content: `版本 ${versionName} 下还有 ${prdCount} 个 PRD 文档，请先删除或移动这些文档后再删除版本。`,
+      });
+      return;
+    }
+    
+    Modal.confirm({
+      title: '确认删除版本',
+      content: `确定要删除版本 ${versionName} 吗？此操作不可恢复。`,
+      okText: '确定',
+      cancelText: '取消',
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        try {
+          await api.appVersion.delete(projectId, versionId);
+          message.success(`删除版本 ${versionName} 成功`);
+          fetchAllData();
+        } catch (error) {
+          console.error('Failed to delete version:', error);
+          message.error('删除版本失败');
+        }
+      },
+    });
+  };
+
   // 全部展开
   const handleExpandAll = () => {
     setActiveKeys(appVersions.map(v => v.id));
@@ -456,17 +488,31 @@ export default function PRDList() {
                     <span className="text-gray-500">- {version.description}</span>
                     <Badge count={prds.length} style={{ backgroundColor: '#52c41a' }} />
                   </Space>
-                  <Button
-                    type="primary"
-                    size="small"
-                    icon={<PlusOutlined />}
-                    onClick={e => {
-                      e.stopPropagation();
-                      navigate(`/project/${projectId}/prd/new?version=${version.id}`);
-                    }}
-                  >
-                    新建 PRD
-                  </Button>
+                  <Space>
+                    <Button
+                      type="primary"
+                      size="small"
+                      icon={<PlusOutlined />}
+                      onClick={e => {
+                        e.stopPropagation();
+                        console.log('PRDList - Navigating with version:', version);
+                        navigate(`/project/${projectId}/prd/new?version=${version.id}`);
+                      }}
+                    >
+                      新建 PRD
+                    </Button>
+                    <Button
+                      danger
+                      size="small"
+                      icon={<DeleteOutlined />}
+                      onClick={e => {
+                        e.stopPropagation();
+                        handleDeleteVersion(version.id, version.version, prds.length);
+                      }}
+                    >
+                      删除版本
+                    </Button>
+                  </Space>
                 </div>
               }
             >

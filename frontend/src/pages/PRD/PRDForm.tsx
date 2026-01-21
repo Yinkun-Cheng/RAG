@@ -21,11 +21,34 @@ export default function PRDForm() {
   const isEdit = !!id;
   const versionFromUrl = searchParams.get('version'); // 从 URL 获取版本参数
 
+  // 调试：打印 URL 参数
+  useEffect(() => {
+    console.log('PRDForm - versionFromUrl:', versionFromUrl);
+    console.log('PRDForm - searchParams:', Object.fromEntries(searchParams.entries()));
+  }, [versionFromUrl, searchParams]);
+
   useEffect(() => {
     if (projectId) {
       fetchData();
     }
   }, [projectId, id]);
+
+  // 当版本数据加载完成且有 URL 参数时，设置默认值
+  useEffect(() => {
+    console.log('PRDForm - Setting version:', {
+      isEdit,
+      versionFromUrl,
+      appVersionsLength: appVersions.length,
+      appVersions: appVersions.map(v => ({ id: v.id, version: v.version }))
+    });
+    
+    if (!isEdit && versionFromUrl && appVersions.length > 0) {
+      console.log('PRDForm - Setting form value to:', versionFromUrl);
+      form.setFieldsValue({
+        app_version_id: versionFromUrl,
+      });
+    }
+  }, [appVersions, versionFromUrl, isEdit, form]);
 
   const fetchData = async () => {
     if (!projectId) return;
@@ -55,9 +78,6 @@ export default function PRDForm() {
           tag_ids: prd.tags?.map(t => t.id) || [],
         });
         setContent(prd.content);
-      } else if (versionFromUrl) {
-        // 新建时，如果有版本参数，自动选择该版本
-        form.setFieldValue('app_version_id', versionFromUrl);
       }
     } catch (error) {
       console.error('Failed to fetch data:', error);
@@ -213,10 +233,12 @@ export default function PRDForm() {
             name="app_version_id"
             label="App 版本"
             rules={[{ required: true, message: '请选择 App 版本' }]}
+            tooltip={versionFromUrl ? '版本已自动选择，如需更改请从 PRD 列表页面进入' : undefined}
           >
             <Select
               placeholder="请选择 App 版本"
               size="large"
+              disabled={!!versionFromUrl}
               options={appVersions.map(v => ({
                 label: `${v.version} - ${v.description}`,
                 value: v.id,

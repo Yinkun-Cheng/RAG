@@ -68,13 +68,24 @@ func (h *AppVersionHandler) CreateAppVersion(c *gin.Context) {
 		return
 	}
 
+	// 先生成 UUID
+	var newID string
+	if err := h.db.Raw("SELECT gen_random_uuid()::VARCHAR").Scan(&newID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, common.ErrorResponse(
+			http.StatusInternalServerError,
+			"Failed to generate ID",
+			err.Error(),
+		))
+		return
+	}
+
 	version := &project.AppVersion{
 		ProjectID:   projectID,
 		Version:     req.Version,
 		Description: req.Description,
 	}
+	version.ID = newID
 
-	// 让 GORM 生成 ID
 	if err := h.db.Create(version).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, common.ErrorResponse(
 			http.StatusInternalServerError,

@@ -51,6 +51,7 @@ func SetupRouter(router *gin.Engine, db *gorm.DB, weaviateClient *weaviate.Clien
 	statisticsHandler := handler.NewStatisticsHandler(statisticsSvc)
 	searchHandler := handler.NewSearchHandler(searchSvc)
 	settingsHandler := handler.NewSettingsHandler(settingsSvc)
+	appVersionHandler := handler.NewAppVersionHandler(db)
 
 	// API v1 路由组
 	v1 := router.Group("/api/v1")
@@ -109,6 +110,15 @@ func SetupRouter(router *gin.Engine, db *gorm.DB, weaviateClient *weaviate.Clien
 				tags.PUT("/:tag_id", tagHandler.UpdateTag)
 				tags.DELETE("/:tag_id", tagHandler.DeleteTag)
 				tags.GET("/:tag_id/usage", tagHandler.GetTagUsage)
+			}
+
+			// App 版本管理路由
+			appVersions := projectRoutes.Group("/app-versions")
+			{
+				appVersions.GET("", appVersionHandler.ListAppVersions)
+				appVersions.POST("", appVersionHandler.CreateAppVersion)
+				appVersions.GET("/:version_id", appVersionHandler.GetAppVersion)
+				appVersions.DELETE("/:version_id", appVersionHandler.DeleteAppVersion)
 			}
 
 			// PRD 文档管理路由

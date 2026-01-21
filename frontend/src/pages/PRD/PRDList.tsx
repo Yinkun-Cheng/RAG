@@ -12,6 +12,8 @@ import {
   Modal,
   Form,
   message,
+  Spin,
+  Empty,
 } from 'antd';
 import {
   PlusOutlined,
@@ -29,7 +31,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { ColumnsType } from 'antd/es/table';
-import { mockPRDs, mockAppVersions, mockModules, mockTags, PRD } from '../../mock/data';
+import api, { PRD, Module, Tag as TagType, AppVersion } from '../../api';
 
 const { Search } = Input;
 const { Panel } = Collapse;
@@ -43,21 +45,59 @@ export default function PRDList() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [versionModalVisible, setVersionModalVisible] = useState(false);
   const [activeKeys, setActiveKeys] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [prds, setPrds] = useState<PRD[]>([]);
+  const [modules, setModules] = useState<Module[]>([]);
+  const [tags, setTags] = useState<TagType[]>([]);
+  const [appVersions, setAppVersions] = useState<AppVersion[]>([]);
   const [form] = Form.useForm();
+
+  // 获取所有数据
+  useEffect(() => {
+    if (projectId) {
+      fetchAllData();
+    }
+  }, [projectId]);
+
+  const fetchAllData = async () => {
+    if (!projectId) return;
+    
+    setLoading(true);
+    try {
+      // 并行获取所有数据
+      const [prdsRes, modulesRes, tagsRes, versionsRes] = await Promise.all([
+        api.prd.list(projectId, { page: 1, page_size: 100 }),
+        api.module.getTree(projectId),
+        api.tag.list(projectId),
+        api.appVersion.list(projectId),
+      ]);
+
+      setPrds(prdsRes.data.items || []);
+      setModules(modulesRes.data || []);
+      setTags(tagsRes.data || []);
+      setAppVersions(versionsRes.data || []);
+      setActiveKeys((versionsRes.data || []).map((v: AppVersion) => v.id));
+    } catch (error) {
+      console.error('Failed to fetch data:', error);
+      message.error('获取数据失败');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // 获取所有模块（扁平化）
   const getAllModules = () => {
-    const modules: { id: string; name: string }[] = [];
-    const flatten = (items: typeof mockModules) => {
+    const modulesList: { id: string; name: string }[] = [];
+    const flatten = (items: Module[]) => {
       items.forEach(item => {
-        modules.push({ id: item.id, name: item.name });
+        modulesList.push({ id: item.id, name: item.name });
         if (item.children) {
           flatten(item.children);
         }
       });
     };
-    flatten(mockModules);
-    return modules;
+    flatten(modules);
+    return modulesList;
   };
 
   const allModules = getAllModules();
@@ -87,28 +127,20 @@ export default function PRDList() {
     },
   };
 
-  // 过滤当前项目的 App 版本和 PRD
-  const projectVersions = mockAppVersions.filter(v => v.projectId === projectId);
-  const projectPRDs = mockPRDs.filter(p => p.projectId === projectId);
-
-  // 初始化时展开所有面板
-  useEffect(() => {
-    setActiveKeys(projectVersions.map(v => v.id));
-  }, [projectId]);
-
   // 按 App 版本分组 PRD
-  const groupedPRDs = projectVersions.map(version => {
-    const prds = projectPRDs.filter(prd => {
-      const matchVersion = prd.appVersionId === version.id;
+  const groupedPRDs = appVersions.map(version => {
+    const versionPrds = prds.filter(prd => {
+      const matchVersion = prd.app_version_id === version.id;
       const matchSearch =
         !searchText || prd.title.toLowerCase().includes(searchText.toLowerCase());
-      const matchModule = !selectedModule || prd.moduleId === selectedModule;
+      const matchModule = !selectedModule || prd.module_id === selectedModule;
       const matchStatus = !selectedStatus || prd.status === selectedStatus;
       const matchTags =
-        selectedTags.length === 0 || selectedTags.every(tag => prd.tags.includes(tag));
+        selectedTags.length === 0 || 
+        selectedTags.every(tag => prd.tags?.some(t => t.id === tag));
       return matchVersion && matchSearch && matchModule && matchStatus && matchTags;
     });
-    return { version, prds };
+    return { version, prds: versionPrds };
   });
 
   const columns: ColumnsType<PRD> = [
@@ -131,9 +163,13 @@ export default function PRDList() {
     },
     {
       title: '所属模块',
-      dataIndex: 'moduleName',
-      key: 'moduleName',
+      dataIndex: 'module_id',
+      key: 'module_id',
       width: 150,
+      render: (moduleId) => {
+        const module = allModules.find(m => m.id === moduleId);
+        return module?.name || '-';
+      },
     },
     {
       title: (
@@ -147,19 +183,16 @@ export default function PRDList() {
       dataIndex: 'status',
       key: 'status',
       width: 180,
-      render: (status, record) => {
+      render: (status) => {
         const config = statusConfig[status as keyof typeof statusConfig];
+        if (!config) return status;
         return (
           <Tooltip title={config.description}>
             <Space>
               <Badge status={config.badge as any} />
               <span style={{ color: config.color }}>{config.icon}</span>
               <span>{config.text}</span>
-              {status === 'published' && record.lastSyncTime && (
-                <span className="text-xs text-gray-400">
-                  {record.lastSyncTime}
-                </span>
-              )}
+
             </Space>
           </Tooltip>
         );
@@ -177,24 +210,22 @@ export default function PRDList() {
       dataIndex: 'tags',
       key: 'tags',
       width: 200,
-      render: (tags: string[]) => (
+      render: (prdTags: TagType[]) => (
         <>
-          {tags.map((tag: string) => {
-            const tagInfo = mockTags.find(t => t.name === tag);
-            return (
-              <Tag key={tag} color={tagInfo?.color || 'default'}>
-                {tag}
-              </Tag>
-            );
-          })}
+          {prdTags?.map((tag: TagType) => (
+            <Tag key={tag.id} color={tag.color || 'default'}>
+              {tag.name}
+            </Tag>
+          ))}
         </>
       ),
     },
     {
       title: '更新时间',
-      dataIndex: 'updatedAt',
-      key: 'updatedAt',
+      dataIndex: 'updated_at',
+      key: 'updated_at',
       width: 120,
+      render: (date) => new Date(date).toLocaleDateString('zh-CN'),
     },
     {
       title: '操作',
@@ -224,16 +255,7 @@ export default function PRDList() {
               type="link"
               size="small"
               icon={<SyncOutlined />}
-              onClick={() => {
-                Modal.confirm({
-                  title: '确认发布',
-                  content: '发布后将自动向量化并同步到知识库，AI 可以检索到此文档。确认发布吗？',
-                  onOk: () => {
-                    message.loading('正在发布并同步到知识库...', 1);
-                    setTimeout(() => message.success('发布成功！文档已进入知识库'), 1500);
-                  },
-                });
-              }}
+              onClick={() => handlePublish(record.id)}
             >
               发布
             </Button>
@@ -244,16 +266,7 @@ export default function PRDList() {
               size="small"
               danger
               icon={<InboxOutlined />}
-              onClick={() => {
-                Modal.confirm({
-                  title: '确认归档',
-                  content: '归档后将从知识库中移除，AI 将无法检索到此文档。确认归档吗？',
-                  onOk: () => {
-                    message.loading('正在从知识库移除...', 1);
-                    setTimeout(() => message.success('归档成功！文档已从知识库移除'), 1500);
-                  },
-                });
-              }}
+              onClick={() => handleArchive(record.id)}
             >
               归档
             </Button>
@@ -263,16 +276,7 @@ export default function PRDList() {
               type="link"
               size="small"
               icon={<SyncOutlined />}
-              onClick={() => {
-                Modal.confirm({
-                  title: '确认重新发布',
-                  content: '重新发布后将再次向量化并同步到知识库。确认重新发布吗？',
-                  onOk: () => {
-                    message.loading('正在重新发布...', 1);
-                    setTimeout(() => message.success('重新发布成功！'), 1500);
-                  },
-                });
-              }}
+              onClick={() => handlePublish(record.id)}
             >
               重新发布
             </Button>
@@ -282,23 +286,89 @@ export default function PRDList() {
     },
   ];
 
-  const handleCreateVersion = () => {
-    form.validateFields().then(values => {
+  const handlePublish = async (prdId: string) => {
+    if (!projectId) return;
+    
+    Modal.confirm({
+      title: '确认发布',
+      content: '发布后将自动向量化并同步到知识库，AI 可以检索到此文档。确认发布吗？',
+      onOk: async () => {
+        try {
+          await api.prd.publish(projectId, prdId);
+          message.success('发布成功！文档已进入知识库');
+          fetchAllData();
+        } catch (error) {
+          console.error('Failed to publish PRD:', error);
+          message.error('发布失败');
+        }
+      },
+    });
+  };
+
+  const handleArchive = async (prdId: string) => {
+    if (!projectId) return;
+    
+    Modal.confirm({
+      title: '确认归档',
+      content: '归档后将从知识库中移除，AI 将无法检索到此文档。确认归档吗？',
+      onOk: async () => {
+        try {
+          await api.prd.archive(projectId, prdId);
+          message.success('归档成功！文档已从知识库移除');
+          fetchAllData();
+        } catch (error) {
+          console.error('Failed to archive PRD:', error);
+          message.error('归档失败');
+        }
+      },
+    });
+  };
+
+  const handleCreateVersion = async () => {
+    if (!projectId) return;
+    
+    try {
+      const values = await form.validateFields();
+      await api.appVersion.create(projectId, {
+        version: values.version,
+        description: values.description,
+      });
+      
       message.success(`创建版本 ${values.version} 成功`);
       setVersionModalVisible(false);
       form.resetFields();
-    });
+      fetchAllData();
+    } catch (error) {
+      console.error('Failed to create version:', error);
+      message.error('创建版本失败');
+    }
   };
 
   // 全部展开
   const handleExpandAll = () => {
-    setActiveKeys(projectVersions.map(v => v.id));
+    setActiveKeys(appVersions.map(v => v.id));
   };
 
   // 全部折叠
   const handleCollapseAll = () => {
     setActiveKeys([]);
   };
+
+  if (!projectId) {
+    return (
+      <div className="p-6">
+        <Empty description="项目 ID 不存在，请从项目列表进入" />
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-screen">
+        <Spin size="large" tip="加载中..." />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -360,53 +430,61 @@ export default function PRDList() {
               allowClear
               value={selectedTags}
               onChange={setSelectedTags}
-              options={mockTags.map(t => ({ label: t.name, value: t.name }))}
+              options={tags.map(t => ({ label: t.name, value: t.id }))}
             />
           </Space>
         </Space>
       </div>
 
       {/* 按版本分组展示 */}
-      <Collapse
-        activeKey={activeKeys}
-        onChange={keys => setActiveKeys(keys as string[])}
-        expandIconPosition="start"
-      >
-        {groupedPRDs.map(({ version, prds }) => (
-          <Panel
-            key={version.id}
-            header={
-              <div className="flex justify-between items-center w-full pr-4">
-                <Space>
-                  <FolderOutlined style={{ fontSize: 18, color: '#1890ff' }} />
-                  <span className="font-bold">{version.version}</span>
-                  <span className="text-gray-500">- {version.description}</span>
-                  <Badge count={prds.length} style={{ backgroundColor: '#52c41a' }} />
-                </Space>
-                <Button
-                  type="primary"
+      {appVersions.length === 0 ? (
+        <Empty description="暂无 App 版本，请先创建版本" />
+      ) : (
+        <Collapse
+          activeKey={activeKeys}
+          onChange={keys => setActiveKeys(keys as string[])}
+          expandIconPosition="start"
+        >
+          {groupedPRDs.map(({ version, prds }) => (
+            <Panel
+              key={version.id}
+              header={
+                <div className="flex justify-between items-center w-full pr-4">
+                  <Space>
+                    <FolderOutlined style={{ fontSize: 18, color: '#1890ff' }} />
+                    <span className="font-bold">{version.version}</span>
+                    <span className="text-gray-500">- {version.description}</span>
+                    <Badge count={prds.length} style={{ backgroundColor: '#52c41a' }} />
+                  </Space>
+                  <Button
+                    type="primary"
+                    size="small"
+                    icon={<PlusOutlined />}
+                    onClick={e => {
+                      e.stopPropagation();
+                      navigate(`/project/${projectId}/prd/new?version=${version.id}`);
+                    }}
+                  >
+                    新建 PRD
+                  </Button>
+                </div>
+              }
+            >
+              {prds.length === 0 ? (
+                <Empty description="该版本暂无 PRD 文档" className="py-8" />
+              ) : (
+                <Table
+                  columns={columns}
+                  dataSource={prds}
+                  rowKey="id"
+                  pagination={false}
                   size="small"
-                  icon={<PlusOutlined />}
-                  onClick={e => {
-                    e.stopPropagation();
-                    navigate(`/project/${projectId}/prd/new?version=${version.id}`);
-                  }}
-                >
-                  新建 PRD
-                </Button>
-              </div>
-            }
-          >
-            <Table
-              columns={columns}
-              dataSource={prds}
-              rowKey="id"
-              pagination={false}
-              size="small"
-            />
-          </Panel>
-        ))}
-      </Collapse>
+                />
+              )}
+            </Panel>
+          ))}
+        </Collapse>
+      )}
 
       {/* 新建版本 Modal */}
       <Modal
@@ -417,8 +495,10 @@ export default function PRDList() {
           setVersionModalVisible(false);
           form.resetFields();
         }}
+        okText="确定"
+        cancelText="取消"
       >
-        <Form form={form} layout="vertical">
+        <Form form={form} layout="vertical" className="mt-4">
           <Form.Item
             name="version"
             label="版本号"

@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Form, Input, Select, Button, Card, Space, message } from 'antd';
+import { Form, Input, Select, Button, Card, Space, message, Spin } from 'antd';
 import { ArrowLeftOutlined, SaveOutlined, SendOutlined } from '@ant-design/icons';
 import MarkdownEditor from '../../components/MarkdownEditor';
 import TagSelect from '../../components/TagSelect';
-import { mockPRDs, mockModules, mockTags, mockAppVersions } from '../../mock/data';
+import api, { Module, Tag as TagType, AppVersion } from '../../api';
 
 export default function PRDForm() {
   const { id, projectId } = useParams<{ id?: string; projectId: string }>();
@@ -13,61 +13,159 @@ export default function PRDForm() {
   const [form] = Form.useForm();
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [modules, setModules] = useState<Module[]>([]);
+  const [tags, setTags] = useState<TagType[]>([]);
+  const [appVersions, setAppVersions] = useState<AppVersion[]>([]);
 
   const isEdit = !!id;
   const versionFromUrl = searchParams.get('version'); // 从 URL 获取版本参数
 
   useEffect(() => {
-    if (isEdit) {
-      const prd = mockPRDs.find(p => p.id === id && p.projectId === projectId);
-      if (prd) {
+    if (projectId) {
+      fetchData();
+    }
+  }, [projectId, id]);
+
+  const fetchData = async () => {
+    if (!projectId) return;
+    
+    setLoading(true);
+    try {
+      // 并行获取模块、标签和版本
+      const [modulesRes, tagsRes, versionsRes] = await Promise.all([
+        api.module.getTree(projectId),
+        api.tag.list(projectId),
+        api.appVersion.list(projectId),
+      ]);
+
+      setModules(modulesRes.data || []);
+      setTags(tagsRes.data || []);
+      setAppVersions(versionsRes.data || []);
+
+      // 如果是编辑模式，获取 PRD 详情
+      if (isEdit && id) {
+        const prdRes = await api.prd.get(projectId, id);
+        const prd = prdRes.data;
+        
         form.setFieldsValue({
           title: prd.title,
-          appVersionId: prd.appVersionId,
-          moduleId: prd.moduleId,
-          tags: prd.tags,
+          app_version_id: prd.app_version_id,
+          module_id: prd.module_id,
+          tag_ids: prd.tags?.map(t => t.id) || [],
         });
         setContent(prd.content);
+      } else if (versionFromUrl) {
+        // 新建时，如果有版本参数，自动选择该版本
+        form.setFieldValue('app_version_id', versionFromUrl);
       }
-    } else if (versionFromUrl) {
-      // 新建时，如果有版本参数，自动选择该版本
-      form.setFieldValue('appVersionId', versionFromUrl);
+    } catch (error) {
+      console.error('Failed to fetch data:', error);
+      message.error('获取数据失败');
+    } finally {
+      setLoading(false);
     }
-  }, [id, isEdit, projectId, versionFromUrl, form]);
+  };
 
   // 获取所有模块（扁平化）
   const getAllModules = () => {
-    const modules: { id: string; name: string }[] = [];
-    const flatten = (items: typeof mockModules) => {
+    const modulesList: { id: string; name: string }[] = [];
+    const flatten = (items: Module[]) => {
       items.forEach(item => {
-        modules.push({ id: item.id, name: item.name });
+        modulesList.push({ id: item.id, name: item.name });
         if (item.children) {
           flatten(item.children);
         }
       });
     };
-    flatten(mockModules);
-    return modules;
+    flatten(modules);
+    return modulesList;
   };
 
   const allModules = getAllModules();
-  const projectVersions = mockAppVersions.filter(v => v.projectId === projectId);
 
-  const handleSave = async (status: 'draft' | 'published') => {
+  const handleSave = async (shouldPublish: boolean) => {
+    if (!projectId) return;
+    
     try {
       const values = await form.validateFields();
-      setLoading(true);
+      setSubmitting(true);
 
-      // 模拟保存
-      setTimeout(() => {
-        setLoading(false);
-        message.success(status === 'draft' ? '保存草稿成功' : '发布成功');
-        navigate(`/project/${projectId}/prd`);
-      }, 1000);
+      const prdData = {
+        code: values.code || `PRD-${Date.now()}`,
+        title: values.title,
+        version: '1',
+        app_version_id: values.app_version_id,
+        module_id: values.module_id,
+        content: content,
+        author: 'Current User', // TODO: 从用户上下文获取
+      };
+
+      if (isEdit && id) {
+        // 更新 PRD
+        await api.prd.update(projectId, id, {
+          title: values.title,
+          version: '1',
+          app_version_id: values.app_version_id,
+          module_id: values.module_id,
+          content: content,
+        });
+
+        // 更新标签
+        // TODO: 实现标签的增删逻辑
+
+        if (shouldPublish) {
+          await api.prd.publish(projectId, id);
+        }
+
+        message.success(shouldPublish ? '更新并发布成功' : '更新成功');
+      } else {
+        // 创建 PRD
+        const createRes = await api.prd.create(projectId, prdData);
+        const newPrdId = createRes.data.id;
+
+        // 添加标签
+        if (values.tag_ids && values.tag_ids.length > 0) {
+          await Promise.all(
+            values.tag_ids.map((tagId: string) =>
+              api.prd.addTag(projectId, newPrdId, tagId)
+            )
+          );
+        }
+
+        if (shouldPublish) {
+          await api.prd.publish(projectId, newPrdId);
+        }
+
+        message.success(shouldPublish ? '创建并发布成功' : '创建成功');
+      }
+
+      navigate(`/project/${projectId}/prd`);
     } catch (error) {
-      console.error('表单验证失败:', error);
+      console.error('Failed to save PRD:', error);
+      message.error('保存失败');
+    } finally {
+      setSubmitting(false);
     }
   };
+
+  if (!projectId) {
+    return (
+      <div className="p-6">
+        <div className="text-center py-20">
+          <p className="text-xl text-gray-500">项目 ID 不存在</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-screen">
+        <Spin size="large" tip="加载中..." />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -86,18 +184,18 @@ export default function PRDForm() {
           <Space>
             <Button
               icon={<SaveOutlined />}
-              onClick={() => handleSave('draft')}
-              loading={loading}
+              onClick={() => handleSave(false)}
+              loading={submitting}
             >
               保存草稿
             </Button>
             <Button
               type="primary"
               icon={<SendOutlined />}
-              onClick={() => handleSave('published')}
-              loading={loading}
+              onClick={() => handleSave(true)}
+              loading={submitting}
             >
-              发布
+              {isEdit ? '保存并发布' : '创建并发布'}
             </Button>
           </Space>
         }
@@ -112,14 +210,14 @@ export default function PRDForm() {
           </Form.Item>
 
           <Form.Item
-            name="appVersionId"
+            name="app_version_id"
             label="App 版本"
             rules={[{ required: true, message: '请选择 App 版本' }]}
           >
             <Select
               placeholder="请选择 App 版本"
               size="large"
-              options={projectVersions.map(v => ({
+              options={appVersions.map(v => ({
                 label: `${v.version} - ${v.description}`,
                 value: v.id,
               }))}
@@ -127,7 +225,7 @@ export default function PRDForm() {
           </Form.Item>
 
           <Form.Item
-            name="moduleId"
+            name="module_id"
             label="所属模块"
             rules={[{ required: true, message: '请选择所属模块' }]}
           >
@@ -140,8 +238,13 @@ export default function PRDForm() {
             />
           </Form.Item>
 
-          <Form.Item name="tags" label="标签">
-            <TagSelect availableTags={mockTags} />
+          <Form.Item name="tag_ids" label="标签">
+            <Select
+              mode="multiple"
+              placeholder="选择标签"
+              size="large"
+              options={tags.map(t => ({ label: t.name, value: t.id }))}
+            />
           </Form.Item>
 
           <Form.Item label="文档内容" required>

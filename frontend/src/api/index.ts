@@ -182,6 +182,45 @@ export const tagAPI = {
 };
 
 // ============================================
+// App 版本管理 API
+// ============================================
+
+export interface AppVersion {
+  id: string;
+  project_id: string;
+  version: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export const appVersionAPI = {
+  // 获取 App 版本列表
+  list: (projectId: string) =>
+    request<AppVersion[]>(`/projects/${projectId}/app-versions`),
+  
+  // 创建 App 版本
+  create: (projectId: string, data: {
+    version: string;
+    description: string;
+  }) =>
+    request<AppVersion>(`/projects/${projectId}/app-versions`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  
+  // 获取 App 版本详情
+  get: (projectId: string, versionId: string) =>
+    request<AppVersion>(`/projects/${projectId}/app-versions/${versionId}`),
+  
+  // 删除 App 版本
+  delete: (projectId: string, versionId: string) =>
+    request<null>(`/projects/${projectId}/app-versions/${versionId}`, {
+      method: 'DELETE',
+    }),
+};
+
+// ============================================
 // PRD 文档管理 API
 // ============================================
 
@@ -568,6 +607,7 @@ export default {
   project: projectAPI,
   module: moduleAPI,
   tag: tagAPI,
+  appVersion: appVersionAPI,
   prd: prdAPI,
   testcase: testcaseAPI,
   statistics: statisticsAPI,

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Tree, Dropdown, Modal, Form, Input, Button, message } from 'antd';
+import { Tree, Dropdown, Modal, Form, Input, Button, message, Empty, Space } from 'antd';
 import type { DataNode, TreeProps } from 'antd/es/tree';
 import {
   FolderOutlined,
@@ -7,6 +7,8 @@ import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
+  ExpandOutlined,
+  ShrinkOutlined,
 } from '@ant-design/icons';
 import api, { Module } from '../../api';
 
@@ -14,10 +16,18 @@ interface ModuleTreeProps {
   projectId: string;
   modules: Module[];
   onModuleChange?: () => void;
+  expandedKeys?: React.Key[];
+  onExpandedKeysChange?: (keys: React.Key[]) => void;
 }
 
-export default function ModuleTree({ projectId, modules, onModuleChange }: ModuleTreeProps) {
-  const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
+export default function ModuleTree({ 
+  projectId, 
+  modules, 
+  onModuleChange,
+  expandedKeys: controlledExpandedKeys,
+  onExpandedKeysChange 
+}: ModuleTreeProps) {
+  const [internalExpandedKeys, setInternalExpandedKeys] = useState<React.Key[]>([]);
   const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState<'add' | 'edit'>('add');
@@ -25,16 +35,45 @@ export default function ModuleTree({ projectId, modules, onModuleChange }: Modul
   const [submitting, setSubmitting] = useState(false);
   const [form] = Form.useForm();
 
+  // 使用受控或非受控的展开状态
+  const expandedKeys = controlledExpandedKeys !== undefined ? controlledExpandedKeys : internalExpandedKeys;
+  const setExpandedKeys = (keys: React.Key[]) => {
+    if (onExpandedKeysChange) {
+      onExpandedKeysChange(keys);
+    } else {
+      setInternalExpandedKeys(keys);
+    }
+  };
+
+  // 获取所有模块的 key（用于全部展开）
+  const getAllKeys = (modules: Module[]): string[] => {
+    let keys: string[] = [];
+    modules.forEach(module => {
+      keys.push(module.id);
+      if (module.children && module.children.length > 0) {
+        keys = keys.concat(getAllKeys(module.children));
+      }
+    });
+    return keys;
+  };
+
+  // 全部展开
+  const handleExpandAll = () => {
+    const allKeys = getAllKeys(modules);
+    setExpandedKeys(allKeys);
+  };
+
+  // 全部折叠
+  const handleCollapseAll = () => {
+    setExpandedKeys([]);
+  };
+
   // 转换模块数据为 Tree 组件需要的格式
   const convertToTreeData = (modules: Module[]): DataNode[] => {
     return modules.map(module => ({
       key: module.id,
       title: module.name,
-      icon: expandedKeys.includes(module.id) ? (
-        <FolderOpenOutlined />
-      ) : (
-        <FolderOutlined />
-      ),
+      icon: <FolderOutlined />,
       children: module.children ? convertToTreeData(module.children) : undefined,
     }));
   };
@@ -156,34 +195,65 @@ export default function ModuleTree({ projectId, modules, onModuleChange }: Modul
 
   return (
     <>
-      <div className="mb-4">
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => {
-            setModalType('add');
-            setCurrentModule(null);
-            form.resetFields();
-            setModalVisible(true);
-          }}
-        >
-          新建根模块
-        </Button>
+      <div className="mb-4 flex justify-between items-center">
+        <Space>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => {
+              setModalType('add');
+              setCurrentModule(null);
+              form.resetFields();
+              setModalVisible(true);
+            }}
+          >
+            新建根模块
+          </Button>
+        </Space>
+        
+        {modules.length > 0 && (
+          <Space>
+            <Button
+              icon={<ExpandOutlined />}
+              onClick={handleExpandAll}
+              size="small"
+            >
+              全部展开
+            </Button>
+            <Button
+              icon={<ShrinkOutlined />}
+              onClick={handleCollapseAll}
+              size="small"
+            >
+              全部折叠
+            </Button>
+          </Space>
+        )}
       </div>
 
-      <Tree
-        showIcon
-        expandedKeys={expandedKeys}
-        selectedKeys={selectedKeys}
-        onExpand={onExpand}
-        onSelect={onSelect}
-        treeData={treeData}
-        titleRender={node => (
-          <Dropdown menu={{ items: getContextMenuItems(node) }} trigger={['contextMenu']}>
-            <span>{node.title as string}</span>
-          </Dropdown>
-        )}
-      />
+      {modules.length === 0 ? (
+        <Empty 
+          description="暂无模块，点击上方按钮创建第一个模块"
+          className="py-12"
+        />
+      ) : (
+        <Tree
+          showIcon
+          expandedKeys={expandedKeys}
+          selectedKeys={selectedKeys}
+          onExpand={onExpand}
+          onSelect={onSelect}
+          treeData={treeData}
+          switcherIcon={({ expanded }) => 
+            expanded ? <FolderOpenOutlined /> : <FolderOutlined />
+          }
+          titleRender={node => (
+            <Dropdown menu={{ items: getContextMenuItems(node) }} trigger={['contextMenu']}>
+              <span>{node.title as string}</span>
+            </Dropdown>
+          )}
+        />
+      )}
 
       <Modal
         title={modalType === 'add' ? '新建模块' : '编辑模块'}

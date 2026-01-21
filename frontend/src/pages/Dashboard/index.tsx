@@ -4,11 +4,9 @@ import {
   FileTextOutlined,
   CheckSquareOutlined,
   TagOutlined,
-  FolderOutlined,
   ClockCircleOutlined,
 } from '@ant-design/icons';
-import ModuleTree from '../../components/ModuleTree';
-import { mockModules, mockPRDs, mockTestCases, mockTags, mockProjects } from '../../mock/data';
+import { mockPRDs, mockTestCases, mockTags, mockProjects } from '../../mock/data';
 
 export default function Dashboard() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -49,7 +47,7 @@ export default function Dashboard() {
 
       {/* 统计卡片 */}
       <Row gutter={16} className="mb-6">
-        <Col span={6}>
+        <Col span={8}>
           <Card>
             <Statistic
               title="PRD 文档"
@@ -62,7 +60,7 @@ export default function Dashboard() {
             </div>
           </Card>
         </Col>
-        <Col span={6}>
+        <Col span={8}>
           <Card>
             <Statistic
               title="测试用例"
@@ -75,7 +73,7 @@ export default function Dashboard() {
             </div>
           </Card>
         </Col>
-        <Col span={6}>
+        <Col span={8}>
           <Card>
             <Statistic
               title="标签"
@@ -83,27 +81,11 @@ export default function Dashboard() {
               prefix={<TagOutlined />}
               valueStyle={{ color: '#cf1322' }}
             />
-            <div className="mt-2 text-sm text-gray-500">
-              全局共享标签
-            </div>
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic
-              title="模块"
-              value={mockModules.length}
-              prefix={<FolderOutlined />}
-              valueStyle={{ color: '#722ed1' }}
-            />
-            <div className="mt-2 text-sm text-gray-500">
-              全局共享模块
-            </div>
           </Card>
         </Col>
       </Row>
 
-      <Row gutter={16} className="mb-6">
+      <Row gutter={16}>
         {/* 最近更新的 PRD */}
         <Col span={12}>
           <Card title="最近更新的 PRD" extra={<ClockCircleOutlined />}>
@@ -172,11 +154,6 @@ export default function Dashboard() {
           </Card>
         </Col>
       </Row>
-
-      {/* 模块结构 */}
-      <Card title="模块结构" className="mb-6">
-        <ModuleTree modules={mockModules} />
-      </Card>
     </div>
   );
 }

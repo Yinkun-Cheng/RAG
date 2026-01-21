@@ -8,6 +8,7 @@ export default function ModuleManagement() {
   const { projectId } = useParams<{ projectId: string }>();
   const [modules, setModules] = useState<Module[]>([]);
   const [loading, setLoading] = useState(false);
+  const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
 
   // 获取模块树
   const fetchModules = async () => {
@@ -33,8 +34,12 @@ export default function ModuleManagement() {
   }, [projectId]);
 
   const handleModuleChange = () => {
-    // 重新加载模块数据
+    // 重新加载模块数据，但保持展开状态
     fetchModules();
+  };
+
+  const handleExpandedKeysChange = (keys: React.Key[]) => {
+    setExpandedKeys(keys);
   };
 
   if (!projectId) {
@@ -65,18 +70,13 @@ export default function ModuleManagement() {
             title="模块树结构" 
             extra={<span className="text-gray-500">右键点击模块可进行操作</span>}
           >
-            {modules.length === 0 ? (
-              <Empty 
-                description="暂无模块，点击下方按钮创建第一个模块"
-                className="py-12"
-              />
-            ) : (
-              <ModuleTree 
-                projectId={projectId} 
-                modules={modules} 
-                onModuleChange={handleModuleChange} 
-              />
-            )}
+            <ModuleTree 
+              projectId={projectId} 
+              modules={modules} 
+              onModuleChange={handleModuleChange}
+              expandedKeys={expandedKeys}
+              onExpandedKeysChange={handleExpandedKeysChange}
+            />
           </Card>
         </Col>
       </Row>

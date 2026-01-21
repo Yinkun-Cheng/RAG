@@ -163,26 +163,3 @@ func (h *ProjectHandler) DeleteProject(c *gin.Context) {
 		"message": "Project deleted successfully",
 	}))
 }
-
-// GetProjectStatistics 获取项目统计信息
-// @Summary 获取项目统计信息
-// @Tags 项目管理
-// @Produce json
-// @Param id path string true "项目ID"
-// @Success 200 {object} common.Response
-// @Router /api/v1/projects/{id}/statistics [get]
-func (h *ProjectHandler) GetProjectStatistics(c *gin.Context) {
-	id := c.Param("id")
-
-	stats, err := h.service.GetProjectStatistics(id)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, common.ErrorResponse(
-			common.CodeInternalServerError,
-			"Failed to get project statistics",
-			err.Error(),
-		))
-		return
-	}
-
-	c.JSON(http.StatusOK, common.SuccessResponse(stats))
-}

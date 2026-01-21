@@ -7,6 +7,7 @@ import (
 	moduleService "rag-backend/internal/service/module"
 	prdService "rag-backend/internal/service/prd"
 	projectService "rag-backend/internal/service/project"
+	statisticsService "rag-backend/internal/service/statistics"
 	tagService "rag-backend/internal/service/tag"
 	testcaseService "rag-backend/internal/service/testcase"
 
@@ -32,6 +33,7 @@ func SetupRouter(router *gin.Engine, db *gorm.DB) {
 	tagSvc := tagService.NewService(tagRepo)
 	prdSvc := prdService.NewService(prdRepo, prdVersionRepo)
 	testCaseSvc := testcaseService.NewService(testCaseRepo, testStepRepo, testCaseVersionRepo)
+	statisticsSvc := statisticsService.NewService(db)
 
 	// 创建处理器
 	projectHandler := handler.NewProjectHandler(projectSvc)
@@ -39,6 +41,7 @@ func SetupRouter(router *gin.Engine, db *gorm.DB) {
 	tagHandler := handler.NewTagHandler(tagSvc)
 	prdHandler := handler.NewPRDHandler(prdSvc)
 	testCaseHandler := handler.NewTestCaseHandler(testCaseSvc)
+	statisticsHandler := handler.NewStatisticsHandler(statisticsSvc)
 
 	// API v1 路由组
 	v1 := router.Group("/api/v1")
@@ -56,13 +59,20 @@ func SetupRouter(router *gin.Engine, db *gorm.DB) {
 			projectWithID.GET("", projectHandler.GetProject)
 			projectWithID.PUT("", projectHandler.UpdateProject)
 			projectWithID.DELETE("", projectHandler.DeleteProject)
-			projectWithID.GET("/statistics", projectHandler.GetProjectStatistics)
 		}
 
 		// 需要项目 ID 验证的路由（使用 :id 而不是 :project_id）
 		projectRoutes := v1.Group("/projects/:id")
 		projectRoutes.Use(middleware.ProjectIDValidator(db))
 		{
+			// 统计功能路由
+			statistics := projectRoutes.Group("/statistics")
+			{
+				statistics.GET("", statisticsHandler.GetProjectStatistics)
+				statistics.GET("/trends", statisticsHandler.GetTrends)
+				statistics.GET("/coverage", statisticsHandler.GetCoverage)
+			}
+
 			// 模块管理路由
 			modules := projectRoutes.Group("/modules")
 			{

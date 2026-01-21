@@ -135,9 +135,9 @@ type VolcanoArkEmbeddingRequest struct {
 
 // VolcanoArkEmbeddingResponse 火山引擎 Ark Embedding API 响应
 type VolcanoArkEmbeddingResponse struct {
-	Data []struct {
+	Data struct {
 		Embedding []float32 `json:"embedding"`
-		Index     int       `json:"index"`
+		Object    string    `json:"object"`
 	} `json:"data"`
 	Model string `json:"model"`
 	Usage struct {
@@ -207,11 +207,11 @@ func (s *VolcanoArkEmbeddingService) Embed(ctx context.Context, text string) ([]
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	if len(embeddingResp.Data) == 0 {
+	if len(embeddingResp.Data.Embedding) == 0 {
 		return nil, fmt.Errorf("no embedding data returned")
 	}
 
-	return embeddingResp.Data[0].Embedding, nil
+	return embeddingResp.Data.Embedding, nil
 }
 
 // EmbedBatch 批量向量化文本

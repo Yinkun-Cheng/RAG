@@ -1,15 +1,40 @@
-import { useState } from 'react';
-import { Table, Button, Modal, Form, Input, Select, Tag, Space, message } from 'antd';
+import { useState, useEffect } from 'react';
+import { Table, Button, Modal, Form, Input, Select, Tag, Space, message, Spin } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { useParams } from 'react-router-dom';
 import type { ColumnsType } from 'antd/es/table';
-import { mockTags, Tag as TagType } from '../../mock/data';
+import api, { Tag as TagType } from '../../api';
 
 export default function TagManagement() {
-  const [tags, setTags] = useState<TagType[]>(mockTags);
+  const { projectId } = useParams<{ projectId: string }>();
+  const [tags, setTags] = useState<TagType[]>([]);
+  const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState<'add' | 'edit'>('add');
   const [currentTag, setCurrentTag] = useState<TagType | null>(null);
   const [form] = Form.useForm();
+
+  // 获取标签列表
+  useEffect(() => {
+    if (projectId) {
+      fetchTags();
+    }
+  }, [projectId]);
+
+  const fetchTags = async () => {
+    if (!projectId) return;
+    
+    setLoading(true);
+    try {
+      const response = await api.tag.list(projectId);
+      setTags(response.data || []);
+    } catch (error) {
+      console.error('Failed to fetch tags:', error);
+      message.error('获取标签列表失败');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const colorOptions = [
     { label: '红色', value: 'red' },
@@ -36,10 +61,15 @@ export default function TagManagement() {
       render: color => colorOptions.find(opt => opt.value === color)?.label || color,
     },
     {
-      title: '使用次数',
-      dataIndex: 'usageCount',
-      key: 'usageCount',
-      sorter: (a, b) => a.usageCount - b.usageCount,
+      title: '描述',
+      dataIndex: 'description',
+      key: 'description',
+    },
+    {
+      title: '创建时间',
+      dataIndex: 'created_at',
+      key: 'created_at',
+      render: (date) => new Date(date).toLocaleDateString('zh-CN'),
     },
     {
       title: '操作',
@@ -52,7 +82,11 @@ export default function TagManagement() {
             onClick={() => {
               setModalType('edit');
               setCurrentTag(record);
-              form.setFieldsValue(record);
+              form.setFieldsValue({
+                name: record.name,
+                color: record.color,
+                description: record.description,
+              });
               setModalVisible(true);
             }}
           >
@@ -62,16 +96,7 @@ export default function TagManagement() {
             type="link"
             danger
             icon={<DeleteOutlined />}
-            onClick={() => {
-              Modal.confirm({
-                title: '确认删除',
-                content: `确定要删除标签"${record.name}"吗？`,
-                onOk: () => {
-                  setTags(tags.filter(t => t.id !== record.id));
-                  message.success('删除成功');
-                },
-              });
-            }}
+            onClick={() => handleDelete(record)}
           >
             删除
           </Button>
@@ -80,23 +105,46 @@ export default function TagManagement() {
     },
   ];
 
-  const handleOk = () => {
-    form.validateFields().then(values => {
+  const handleDelete = async (record: TagType) => {
+    if (!projectId) return;
+    
+    Modal.confirm({
+      title: '确认删除',
+      content: `确定要删除标签"${record.name}"吗？`,
+      onOk: async () => {
+        try {
+          await api.tag.delete(projectId, record.id);
+          message.success('删除成功');
+          fetchTags();
+        } catch (error) {
+          console.error('Failed to delete tag:', error);
+          message.error('删除失败');
+        }
+      },
+    });
+  };
+
+  const handleOk = async () => {
+    if (!projectId) return;
+    
+    try {
+      const values = await form.validateFields();
+      
       if (modalType === 'add') {
-        const newTag: TagType = {
-          id: String(Date.now()),
-          ...values,
-          usageCount: 0,
-        };
-        setTags([...tags, newTag]);
+        await api.tag.create(projectId, values);
         message.success('新建标签成功');
       } else if (currentTag) {
-        setTags(tags.map(t => (t.id === currentTag.id ? { ...t, ...values } : t)));
+        await api.tag.update(projectId, currentTag.id, values);
         message.success('编辑标签成功');
       }
+      
       setModalVisible(false);
       form.resetFields();
-    });
+      fetchTags();
+    } catch (error) {
+      console.error('Failed to save tag:', error);
+      message.error('保存失败');
+    }
   };
 
   return (
@@ -117,7 +165,13 @@ export default function TagManagement() {
         </Button>
       </div>
 
-      <Table columns={columns} dataSource={tags} rowKey="id" />
+      {loading ? (
+        <div className="flex justify-center items-center py-20">
+          <Spin size="large" tip="加载中..." />
+        </div>
+      ) : (
+        <Table columns={columns} dataSource={tags} rowKey="id" />
+      )}
 
       <Modal
         title={modalType === 'add' ? '新建标签' : '编辑标签'}
@@ -148,6 +202,12 @@ export default function TagManagement() {
                 <Tag color={option.data.value}>{option.data.label}</Tag>
               )}
             />
+          </Form.Item>
+          <Form.Item
+            name="description"
+            label="描述"
+          >
+            <Input.TextArea placeholder="请输入标签描述" rows={3} />
           </Form.Item>
         </Form>
       </Modal>

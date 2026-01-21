@@ -115,7 +115,7 @@ func (c *Client) SearchTestCases(ctx context.Context, embedding []float32, limit
 	result, err := c.client.GraphQL().Get().
 		WithClassName("TestCase").
 		WithFields(
-			graphql.Field{Name: "testcase_id"},
+			graphql.Field{Name: "test_case_id"},
 			graphql.Field{Name: "_additional", Fields: []graphql.Field{
 				{Name: "certainty"},
 			}},
@@ -129,7 +129,7 @@ func (c *Client) SearchTestCases(ctx context.Context, embedding []float32, limit
 	}
 
 	// 解析结果
-	return c.parseSearchResults(result, "TestCase", "testcase_id")
+	return c.parseSearchResults(result, "TestCase", "test_case_id")
 }
 
 // HybridSearchPRDs 混合检索 PRD 文档（结合向量检索和 BM25）
@@ -173,7 +173,7 @@ func (c *Client) HybridSearchTestCases(ctx context.Context, query string, embedd
 	result, err := c.client.GraphQL().Get().
 		WithClassName("TestCase").
 		WithFields(
-			graphql.Field{Name: "testcase_id"},
+			graphql.Field{Name: "test_case_id"},
 			graphql.Field{Name: "_additional", Fields: []graphql.Field{
 				{Name: "score"},
 			}},
@@ -187,7 +187,7 @@ func (c *Client) HybridSearchTestCases(ctx context.Context, query string, embedd
 	}
 
 	// 解析结果（混合检索使用 score 而不是 certainty）
-	return c.parseHybridSearchResults(result, "TestCase", "testcase_id")
+	return c.parseHybridSearchResults(result, "TestCase", "test_case_id")
 }
 
 // parseSearchResults 解析搜索结果

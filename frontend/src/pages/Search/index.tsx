@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Input,
@@ -14,6 +14,7 @@ import {
   Collapse,
   Divider,
   InputNumber,
+  message,
 } from 'antd';
 import {
   SearchOutlined,
@@ -21,8 +22,7 @@ import {
   CheckSquareOutlined,
   FilterOutlined,
 } from '@ant-design/icons';
-import ReactMarkdown from 'react-markdown';
-import { mockModules, mockAppVersions } from '../../mock/data';
+import api from '../../api';
 
 const { Panel } = Collapse;
 
@@ -32,18 +32,19 @@ interface SearchResult {
   title: string;
   content: string;
   score: number;
-  metadata: {
-    project_id: string;
-    project_name: string;
-    app_version: string;
-    module: string;
-    status: string;
-    priority?: string;
-    test_type?: string;
-    tags: string[];
-    created_at: string;
-  };
+  metadata: any;
   highlights: string[];
+}
+
+interface Module {
+  id: string;
+  name: string;
+  children?: Module[];
+}
+
+interface AppVersion {
+  id: string;
+  version: string;
 }
 
 export default function Search() {
@@ -60,118 +61,97 @@ export default function Search() {
   const [showFilters, setShowFilters] = useState(false);
   const [alpha, setAlpha] = useState<number>(1.0); // 混合检索权重，默认纯向量
   const [scoreThreshold, setScoreThreshold] = useState<number>(0.7); // 相似度阈值
+  
+  // 数据加载状态
+  const [modules, setModules] = useState<Module[]>([]);
+  const [appVersions, setAppVersions] = useState<AppVersion[]>([]);
 
-  const projectVersions = mockAppVersions.filter(v => v.projectId === projectId);
+  // 加载模块和版本数据
+  useEffect(() => {
+    if (!projectId) return;
+
+    const loadData = async () => {
+      try {
+        // 加载模块树
+        const moduleRes = await api.module.getTree(projectId);
+        setModules(moduleRes.data);
+
+        // 加载 App 版本
+        const versionRes = await api.appVersion.list(projectId);
+        setAppVersions(versionRes.data);
+      } catch (error) {
+        console.error('Failed to load data:', error);
+        message.error('加载数据失败');
+      }
+    };
+
+    loadData();
+  }, [projectId]);
 
   // 获取所有模块（扁平化）
   const getAllModules = () => {
-    const modules: { id: string; name: string }[] = [{ id: '', name: '全部模块' }];
-    const flatten = (items: typeof mockModules) => {
+    const result: { id: string; name: string }[] = [{ id: '', name: '全部模块' }];
+    const flatten = (items: Module[], prefix = '') => {
       items.forEach(item => {
-        modules.push({ id: item.id, name: item.name });
-        if (item.children) {
-          flatten(item.children);
+        const displayName = prefix ? `${prefix} / ${item.name}` : item.name;
+        result.push({ id: item.id, name: displayName });
+        if (item.children && item.children.length > 0) {
+          flatten(item.children, displayName);
         }
       });
     };
-    flatten(mockModules);
-    return modules;
+    flatten(modules);
+    return result;
   };
 
   const allModules = getAllModules();
 
-  // Mock 搜索结果
-  const mockSearchResults: SearchResult[] = [
-    {
-      id: 'prd-2',
-      type: 'prd',
-      title: '用户登录功能需求文档',
-      content: `# 用户登录功能需求
-
-## 1. 功能概述
-实现用户通过账号密码登录系统。
-
-## 2. 功能需求
-- 支持手机号/邮箱登录
-- 记住登录状态
-- 忘记密码功能`,
-      score: 0.95,
-      metadata: {
-        project_id: 'proj-1',
-        project_name: '电商平台',
-        app_version: 'v1.0.0',
-        module: '用户管理/用户登录',
-        status: 'published',
-        tags: ['核心功能'],
-        created_at: '2025-01-11',
-      },
-      highlights: ['用户登录', '账号密码', '登录系统'],
-    },
-    {
-      id: 'tc-2',
-      type: 'testcase',
-      title: '用户登录-密码错误',
-      content: `前置条件：用户已注册
-测试步骤：
-1. 打开登录页面
-2. 输入用户名：test@example.com
-3. 输入错误密码：wrong123
-4. 点击登录按钮
-预期结果：提示密码错误`,
-      score: 0.92,
-      metadata: {
-        project_id: 'proj-1',
-        project_name: '电商平台',
-        app_version: 'v1.0.0',
-        module: '用户管理/用户登录',
-        status: 'active',
-        priority: 'high',
-        test_type: 'functional',
-        tags: ['核心功能'],
-        created_at: '2025-01-11',
-      },
-      highlights: ['用户登录', '密码错误', '登录页面'],
-    },
-    {
-      id: 'prd-1',
-      type: 'prd',
-      title: '用户注册功能需求文档',
-      content: `# 用户注册功能需求
-
-## 1. 功能概述
-实现用户通过手机号或邮箱注册账号的功能。
-
-## 2. 功能需求
-- 支持手机号注册
-- 支持邮箱注册
-- 验证码验证
-- 密码强度校验`,
-      score: 0.88,
-      metadata: {
-        project_id: 'proj-1',
-        project_name: '电商平台',
-        app_version: 'v1.0.0',
-        module: '用户管理/用户注册',
-        status: 'published',
-        tags: ['核心功能', '高优先级'],
-        created_at: '2025-01-10',
-      },
-      highlights: ['用户注册', '手机号', '邮箱注册'],
-    },
-  ];
-
   const handleSearch = async () => {
     if (!query.trim()) {
+      message.warning('请输入搜索内容');
+      return;
+    }
+
+    if (!projectId) {
+      message.error('项目ID不存在');
       return;
     }
 
     setLoading(true);
 
-    // 模拟 API 调用
-    setTimeout(() => {
-      setResults(mockSearchResults);
+    try {
+      const searchData: any = {
+        query: query.trim(),
+        type,
+        limit: 20,
+        score_threshold: scoreThreshold,
+        alpha,
+      };
+
+      // 添加筛选条件
+      if (moduleId) {
+        searchData.module_id = moduleId;
+      }
+      if (appVersion) {
+        searchData.app_version_id = appVersion;
+      }
+      if (status) {
+        searchData.status = status;
+      }
+
+      const response = await api.search.search(projectId, searchData);
+      setResults(response.data.results || []);
+      
+      if (response.data.results.length === 0) {
+        message.info('未找到相关结果');
+      }
+    } catch (error: any) {
+      console.error('Search failed:', error);
+      message.error(error.message || '搜索失败');
+      setResults([]);
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -206,13 +186,30 @@ export default function Search() {
     return 'orange';
   };
 
-  const highlightText = (text: string, highlights: string[]) => {
-    let result = text;
-    highlights.forEach(keyword => {
-      const regex = new RegExp(`(${keyword})`, 'gi');
-      result = result.replace(regex, '<mark class="bg-yellow-200">$1</mark>');
-    });
-    return result;
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('zh-CN');
+  };
+
+  const getStatusText = (status: string) => {
+    const statusMap: Record<string, string> = {
+      draft: '草稿',
+      published: '已发布',
+      archived: '已归档',
+      active: '有效',
+      deprecated: '已废弃',
+    };
+    return statusMap[status] || status;
+  };
+
+  const getPriorityText = (priority: string) => {
+    const priorityMap: Record<string, string> = {
+      high: '高',
+      medium: '中',
+      low: '低',
+    };
+    return priorityMap[priority] || priority;
   };
 
   // 按类型分组结果
@@ -285,19 +282,19 @@ export default function Search() {
               <div className="grid grid-cols-4 gap-4">
                 <div>
                   <div className="mb-2 text-sm text-gray-600">App 版本：</div>
-                  <Select
-                    placeholder="全部版本"
-                    value={appVersion}
-                    onChange={setAppVersion}
-                    style={{ width: '100%' }}
-                    options={[
-                      { label: '全部版本', value: '' },
-                      ...projectVersions.map(v => ({
-                        label: v.version,
-                        value: v.id,
-                      })),
-                    ]}
-                  />
+                    <Select
+                      placeholder="全部版本"
+                      value={appVersion}
+                      onChange={setAppVersion}
+                      style={{ width: '100%' }}
+                      options={[
+                        { label: '全部版本', value: '' },
+                        ...appVersions.map(v => ({
+                          label: v.version,
+                          value: v.id,
+                        })),
+                      ]}
+                    />
                 </div>
 
                 <div>
@@ -483,35 +480,31 @@ export default function Search() {
                               </Tag>
                             </div>
                             <div className="text-sm text-gray-500 space-x-2">
-                              <span>{item.metadata.app_version}</span>
+                              {item.metadata.code && <span>{item.metadata.code}</span>}
+                              {item.metadata.code && <span>•</span>}
+                              <span>{getStatusText(item.metadata.status)}</span>
                               <span>•</span>
-                              <span>{item.metadata.module}</span>
-                              <span>•</span>
-                              <span>{item.metadata.created_at}</span>
+                              <span>{formatDate(item.metadata.created_at)}</span>
                             </div>
                           </div>
                           <Badge
                             status={item.metadata.status === 'published' ? 'success' : 'default'}
-                            text={
-                              item.metadata.status === 'published' ? '已发布' : '草稿'
-                            }
+                            text={getStatusText(item.metadata.status)}
                           />
                         </div>
 
-                        <div
-                          className="text-gray-700 text-sm line-clamp-3 mb-2"
-                          dangerouslySetInnerHTML={{
-                            __html: highlightText(item.content, item.highlights),
-                          }}
-                        />
-
-                        <div className="flex gap-1">
-                          {item.metadata.tags.map(tag => (
-                            <Tag key={tag} color="blue">
-                              {tag}
-                            </Tag>
-                          ))}
+                        <div className="text-gray-700 text-sm line-clamp-3 mb-2">
+                          {item.content}
                         </div>
+
+                        {item.highlights && item.highlights.length > 0 && (
+                          <div className="text-xs text-gray-500 bg-yellow-50 p-2 rounded mb-2">
+                            <div className="font-medium mb-1">相关片段：</div>
+                            {item.highlights.slice(0, 2).map((highlight, idx) => (
+                              <div key={idx} className="line-clamp-2">{highlight}</div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </List.Item>
                   )}
@@ -546,12 +539,10 @@ export default function Search() {
                               </Tag>
                             </div>
                             <div className="text-sm text-gray-500 space-x-2">
-                              <span>{item.metadata.app_version}</span>
-                              <span>•</span>
-                              <span>{item.metadata.module}</span>
+                              {item.metadata.code && <span>{item.metadata.code}</span>}
+                              {item.metadata.code && <span>•</span>}
                               {item.metadata.priority && (
                                 <>
-                                  <span>•</span>
                                   <Tag
                                     color={
                                       item.metadata.priority === 'high'
@@ -561,36 +552,34 @@ export default function Search() {
                                         : 'blue'
                                     }
                                   >
-                                    {item.metadata.priority === 'high'
-                                      ? '高'
-                                      : item.metadata.priority === 'medium'
-                                      ? '中'
-                                      : '低'}
+                                    {getPriorityText(item.metadata.priority)}
                                   </Tag>
+                                  <span>•</span>
                                 </>
                               )}
+                              <span>{getStatusText(item.metadata.status)}</span>
+                              <span>•</span>
+                              <span>{formatDate(item.metadata.created_at)}</span>
                             </div>
                           </div>
                           <Badge
                             status={item.metadata.status === 'active' ? 'success' : 'default'}
-                            text={item.metadata.status === 'active' ? '有效' : '已废弃'}
+                            text={getStatusText(item.metadata.status)}
                           />
                         </div>
 
-                        <div
-                          className="text-gray-700 text-sm line-clamp-3 mb-2"
-                          dangerouslySetInnerHTML={{
-                            __html: highlightText(item.content, item.highlights),
-                          }}
-                        />
-
-                        <div className="flex gap-1">
-                          {item.metadata.tags.map(tag => (
-                            <Tag key={tag} color="blue">
-                              {tag}
-                            </Tag>
-                          ))}
+                        <div className="text-gray-700 text-sm line-clamp-3 mb-2">
+                          {item.content}
                         </div>
+
+                        {item.highlights && item.highlights.length > 0 && (
+                          <div className="text-xs text-gray-500 bg-yellow-50 p-2 rounded">
+                            <div className="font-medium mb-1">相关片段：</div>
+                            {item.highlights.slice(0, 2).map((highlight, idx) => (
+                              <div key={idx} className="line-clamp-2">{highlight}</div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </List.Item>
                   )}

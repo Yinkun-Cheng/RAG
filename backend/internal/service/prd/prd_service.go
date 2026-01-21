@@ -406,16 +406,16 @@ func (s *service) PublishPRD(id string) (*prd.PRDDocument, error) {
 		return nil, err
 	}
 
-	// 只有草稿状态才能发布
-	if doc.Status != "draft" {
-		return nil, errors.New("only draft PRD can be published")
+	// 更新状态为已发布（如果不是已发布状态）
+	if doc.Status != "published" {
+		doc.Status = "published"
+		if err := s.repo.Update(doc); err != nil {
+			return nil, err
+		}
 	}
 
-	// 更新状态为已发布
-	doc.Status = "published"
-	if err := s.repo.Update(doc); err != nil {
-		return nil, err
-	}
+	// 异步同步到向量数据库（无论当前状态如何，都重新同步）
+	go s.syncPRDToVector(doc)
 
 	return s.repo.GetByID(doc.ID)
 }
@@ -440,6 +440,9 @@ func (s *service) ArchivePRD(id string) (*prd.PRDDocument, error) {
 	if err := s.repo.Update(doc); err != nil {
 		return nil, err
 	}
+
+	// 异步从向量数据库删除
+	go s.deletePRDFromVector(doc.ID)
 
 	return s.repo.GetByID(doc.ID)
 }

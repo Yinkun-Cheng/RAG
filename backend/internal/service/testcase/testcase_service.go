@@ -26,7 +26,7 @@ type Service interface {
 	AddTestCaseTag(testCaseID, tagID string) error
 	RemoveTestCaseTag(testCaseID, tagID string) error
 	GetTestCaseVersions(testCaseID string) ([]*testcase.TestCaseVersion, error)
-	GetTestCaseVersion(testCaseID string, version int) (*testcase.TestCaseVersion, e
+	GetTestCaseVersion(testCaseID string, version int) (*testcase.TestCaseVersion, error)
 }
 
 type service struct {

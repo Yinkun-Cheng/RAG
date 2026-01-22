@@ -140,17 +140,18 @@ func (c *Client) HybridSearchPRDs(ctx context.Context, query string, embedding [
 		WithVector(embedding).
 		WithAlpha(alpha) // 0 = 纯 BM25, 1 = 纯向量, 0.5 = 各占 50%
 
-	// 执行查询
+	// 执行查询 - 获取更多结果用于后续过滤
 	result, err := c.client.GraphQL().Get().
 		WithClassName("PRDDocument").
 		WithFields(
 			graphql.Field{Name: "prd_id"},
 			graphql.Field{Name: "_additional", Fields: []graphql.Field{
 				{Name: "score"},
+				{Name: "explainScore"}, // 添加分数解释，帮助调试
 			}},
 		).
 		WithHybrid(hybrid).
-		WithLimit(limit).
+		WithLimit(limit * 2). // 获取更多结果，因为需要过滤
 		Do(ctx)
 
 	if err != nil {
@@ -158,7 +159,35 @@ func (c *Client) HybridSearchPRDs(ctx context.Context, query string, embedding [
 	}
 
 	// 解析结果（混合检索使用 score 而不是 certainty）
-	return c.parseHybridSearchResults(result, "PRDDocument", "prd_id")
+	results, err := c.parseHybridSearchResults(result, "PRDDocument", "prd_id")
+	if err != nil {
+		return nil, err
+	}
+
+	// 应用阈值过滤并限制结果数量
+	// 注意：混合检索的 score 范围可能与 certainty 不同，需要归一化
+	var filteredResults []SearchResult
+	for _, r := range results {
+		// 混合检索的 score 通常在 0-1 之间，但可能超过 1
+		// 我们将其归一化到 0-1 范围
+		normalizedScore := r.Score
+		if normalizedScore > 1.0 {
+			normalizedScore = 1.0
+		}
+		
+		// 应用阈值过滤
+		if normalizedScore >= threshold {
+			r.Score = normalizedScore
+			filteredResults = append(filteredResults, r)
+		}
+		
+		// 达到限制数量后停止
+		if len(filteredResults) >= limit {
+			break
+		}
+	}
+
+	return filteredResults, nil
 }
 
 // HybridSearchTestCases 混合检索测试用例（结合向量检索和 BM25）
@@ -169,17 +198,18 @@ func (c *Client) HybridSearchTestCases(ctx context.Context, query string, embedd
 		WithVector(embedding).
 		WithAlpha(alpha) // 0 = 纯 BM25, 1 = 纯向量, 0.5 = 各占 50%
 
-	// 执行查询
+	// 执行查询 - 获取更多结果用于后续过滤
 	result, err := c.client.GraphQL().Get().
 		WithClassName("TestCase").
 		WithFields(
 			graphql.Field{Name: "test_case_id"},
 			graphql.Field{Name: "_additional", Fields: []graphql.Field{
 				{Name: "score"},
+				{Name: "explainScore"}, // 添加分数解释，帮助调试
 			}},
 		).
 		WithHybrid(hybrid).
-		WithLimit(limit).
+		WithLimit(limit * 2). // 获取更多结果，因为需要过滤
 		Do(ctx)
 
 	if err != nil {
@@ -187,7 +217,34 @@ func (c *Client) HybridSearchTestCases(ctx context.Context, query string, embedd
 	}
 
 	// 解析结果（混合检索使用 score 而不是 certainty）
-	return c.parseHybridSearchResults(result, "TestCase", "test_case_id")
+	results, err := c.parseHybridSearchResults(result, "TestCase", "test_case_id")
+	if err != nil {
+		return nil, err
+	}
+
+	// 应用阈值过滤并限制结果数量
+	var filteredResults []SearchResult
+	for _, r := range results {
+		// 混合检索的 score 通常在 0-1 之间，但可能超过 1
+		// 我们将其归一化到 0-1 范围
+		normalizedScore := r.Score
+		if normalizedScore > 1.0 {
+			normalizedScore = 1.0
+		}
+		
+		// 应用阈值过滤
+		if normalizedScore >= threshold {
+			r.Score = normalizedScore
+			filteredResults = append(filteredResults, r)
+		}
+		
+		// 达到限制数量后停止
+		if len(filteredResults) >= limit {
+			break
+		}
+	}
+
+	return filteredResults, nil
 }
 
 // parseSearchResults 解析搜索结果
@@ -266,6 +323,13 @@ func (c *Client) parseHybridSearchResults(result *models.GraphQLResponse, classN
 		if additional, ok := itemMap["_additional"].(map[string]interface{}); ok {
 			if hybridScore, ok := additional["score"].(float64); ok {
 				score = float32(hybridScore)
+			}
+			
+			// 打印调试信息
+			if explainScore, ok := additional["explainScore"].(string); ok {
+				log.Printf("混合检索结果 - ID: %s, Score: %.4f, Explain: %s", id, score, explainScore)
+			} else {
+				log.Printf("混合检索结果 - ID: %s, Score: %.4f", id, score)
 			}
 		}
 

@@ -74,7 +74,22 @@ func (m *EmbeddingManager) LoadConfig(ctx context.Context) (*EmbeddingConfig, er
 		}
 	}
 
+	// 打印加载的配置（用于调试）
+	log.Printf("Loaded Embedding Config: Provider=%s, Model=%s, BaseURL=%s, APIKey=%s",
+		config.Provider, config.Model, config.BaseURL, maskAPIKey(config.APIKey))
+
 	return config, nil
+}
+
+// maskAPIKey 隐藏 API Key 的部分内容（用于日志）
+func maskAPIKey(apiKey string) string {
+	if apiKey == "" {
+		return "<empty>"
+	}
+	if len(apiKey) <= 8 {
+		return "***"
+	}
+	return apiKey[:4] + "..." + apiKey[len(apiKey)-4:]
 }
 
 // InitializeService 初始化 Embedding 服务
@@ -95,13 +110,13 @@ func (m *EmbeddingManager) InitializeService(ctx context.Context) error {
 			service = NewOpenAIEmbeddingService(config.APIKey, config.BaseURL, config.Model)
 			log.Printf("Initialized OpenAI Embedding Service (model: %s)", config.Model)
 		}
-	case "volcano_ark":
+	case "volcano_ark", "volcengine": // 支持两种写法（向后兼容）
 		if config.APIKey == "" {
 			log.Println("Warning: Volcano Ark API Key is empty, falling back to Mock service")
 			service = NewMockEmbeddingService()
 		} else {
 			service = NewVolcanoArkEmbeddingService(config.APIKey, config.BaseURL, config.Model)
-			log.Printf("Initialized Volcano Ark Embedding Service (model: %s)", config.Model)
+			log.Printf("Initialized Volcano Ark Embedding Service (model: %s, provider: %s)", config.Model, config.Provider)
 		}
 	case "mock":
 		service = NewMockEmbeddingService()

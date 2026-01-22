@@ -177,6 +177,9 @@ func (s *SearchService) Search(ctx context.Context, req *SearchRequest) (*Search
 	if err != nil {
 		return nil, fmt.Errorf("生成查询向量失败: %w", err)
 	}
+	
+	// 🔍 调试日志：打印向量维度
+	fmt.Printf("🔍 Search Query Vector Dimension: %d\n", len(embedding))
 
 	var results []SearchResult
 

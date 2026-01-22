@@ -51,6 +51,9 @@ func (c *Client) createPRDDocumentSchema(ctx context.Context) error {
 		Class:       PRDDocumentClass,
 		Description: "PRD 文档向量存储，用于语义检索",
 		Vectorizer:  "none", // 不使用内置向量化，后端自己提供向量
+		VectorIndexConfig: map[string]interface{}{
+			"distance": "cosine",
+		},
 		Properties: []*models.Property{
 			{
 				Name:        "prd_id",
@@ -113,6 +116,9 @@ func (c *Client) createTestCaseSchema(ctx context.Context) error {
 		Class:       TestCaseClass,
 		Description: "测试用例向量存储，用于语义检索",
 		Vectorizer:  "none", // 不使用内置向量化，后端自己提供向量
+		VectorIndexConfig: map[string]interface{}{
+			"distance": "cosine",
+		},
 		Properties: []*models.Property{
 			{
 				Name:        "test_case_id",

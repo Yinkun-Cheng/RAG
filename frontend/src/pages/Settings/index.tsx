@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Card,
   Form,
@@ -19,45 +19,79 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
 } from '@ant-design/icons';
+import api from '../../api';
 
 const { TabPane } = Tabs;
-const { TextArea } = Input;
 
 export default function Settings() {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<{
-    weaviate?: 'success' | 'error';
     embedding?: 'success' | 'error';
   }>({});
 
-  // 测试 Weaviate 连接
-  const testWeaviateConnection = async () => {
-    setTestingConnection(true);
+  // 加载配置数据
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
     try {
-      // 模拟测试连接
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setConnectionStatus({ ...connectionStatus, weaviate: 'success' });
-      message.success('Weaviate 连接成功');
-    } catch (error) {
-      setConnectionStatus({ ...connectionStatus, weaviate: 'error' });
-      message.error('Weaviate 连接失败');
-    } finally {
-      setTestingConnection(false);
+      const response = await api.settings.getAll();
+      const settings = response.data;
+      
+      console.log('Settings loaded from backend:', settings);
+      
+      // 将设置数据转换为表单值
+      const formValues: Record<string, any> = {};
+      settings.forEach((setting) => {
+        // 对于 boolean 类型的字段，需要转换为 true/false
+        if (setting.type === 'boolean') {
+          formValues[setting.key] = setting.value === 'true' || setting.value === '1';
+        } 
+        // 对于 number 类型的字段，需要转换为数字
+        else if (setting.type === 'number') {
+          formValues[setting.key] = parseFloat(setting.value);
+        } 
+        // 其他字段保持字符串
+        else {
+          formValues[setting.key] = setting.value;
+        }
+      });
+      
+      console.log('Form values to be set:', formValues);
+      form.setFieldsValue(formValues);
+      console.log('Form values after setting:', form.getFieldsValue());
+    } catch (error: any) {
+      message.error('加载配置失败：' + (error.message || '未知错误'));
     }
   };
 
   // 测试 Embedding 模型
   const testEmbeddingModel = async () => {
-    setTestingConnection(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const values = await form.validateFields([
+        'embedding_provider',
+        'embedding_model',
+        'embedding_api_key',
+        'embedding_base_url',
+      ]);
+      
+      setTestingConnection(true);
+      
+      await api.settings.testEmbedding({
+        provider: values.embedding_provider,
+        model: values.embedding_model,
+        apiKey: values.embedding_api_key,
+        baseURL: values.embedding_base_url || '',
+      });
+      
       setConnectionStatus({ ...connectionStatus, embedding: 'success' });
       message.success('Embedding 模型连接成功');
-    } catch (error) {
+    } catch (error: any) {
       setConnectionStatus({ ...connectionStatus, embedding: 'error' });
-      message.error('Embedding 模型连接失败');
+      message.error('Embedding 模型连接失败：' + (error.message || '未知错误'));
     } finally {
       setTestingConnection(false);
     }
@@ -69,14 +103,25 @@ export default function Settings() {
       const values = await form.validateFields();
       setLoading(true);
 
-      // 模拟保存
-      setTimeout(() => {
-        setLoading(false);
-        message.success('配置保存成功');
-      }, 1000);
-    } catch (error) {
-      console.error('表单验证失败:', error);
+      // 将表单值转换为设置更新格式
+      const updates: Record<string, string> = {};
+      Object.keys(values).forEach((key) => {
+        updates[key] = String(values[key]);
+      });
+
+      await api.settings.batchUpdate(updates);
+      message.success('配置保存成功');
+    } catch (error: any) {
+      message.error('配置保存失败：' + (error.message || '未知错误'));
+    } finally {
+      setLoading(false);
     }
+  };
+
+  // 重置配置
+  const handleReset = () => {
+    loadSettings();
+    message.info('已重置为保存的配置');
   };
 
   return (
@@ -84,7 +129,7 @@ export default function Settings() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">系统配置</h1>
         <Space>
-          <Button icon={<ReloadOutlined />}>重置</Button>
+          <Button icon={<ReloadOutlined />} onClick={handleReset}>重置</Button>
           <Button
             type="primary"
             icon={<SaveOutlined />}
@@ -96,7 +141,7 @@ export default function Settings() {
         </Space>
       </div>
 
-      <Tabs defaultActiveKey="weaviate">
+      <Tabs defaultActiveKey="search">
         {/* 搜索配置 */}
         <TabPane tab="搜索配置" key="search">
           <Card>
@@ -249,16 +294,10 @@ export default function Settings() {
               <Form.Item
                 name="llm_provider"
                 label="模型提供商"
-                rules={[{ required: true, message: '请选择模型提供商' }]}
-                initialValue="claude"
+                rules={[{ required: true, message: '请输入模型提供商' }]}
+                tooltip="支持的提供商：openai, claude, azure, local, custom 等"
               >
-                <Select>
-                  <Select.Option value="openai">OpenAI</Select.Option>
-                  <Select.Option value="claude">Claude (Anthropic)</Select.Option>
-                  <Select.Option value="azure">Azure OpenAI</Select.Option>
-                  <Select.Option value="local">本地模型 (Ollama)</Select.Option>
-                  <Select.Option value="custom">自定义 API</Select.Option>
-                </Select>
+                <Input placeholder="例如: claude 或 openai" />
               </Form.Item>
 
               <Form.Item
@@ -301,29 +340,7 @@ export default function Settings() {
                 <InputNumber min={1000} max={8000} step={1000} style={{ width: '100%' }} />
               </Form.Item>
 
-              <Form.Item>
-                <Space>
-                  <Button
-                    onClick={testEmbeddingModel}
-                    loading={testingConnection}
-                    icon={
-                      connectionStatus.embedding === 'success' ? (
-                        <CheckCircleOutlined style={{ color: '#52c41a' }} />
-                      ) : connectionStatus.embedding === 'error' ? (
-                        <CloseCircleOutlined style={{ color: '#ff4d4f' }} />
-                      ) : undefined
-                    }
-                  >
-                    测试 LLM 连接
-                  </Button>
-                  {connectionStatus.embedding === 'success' && (
-                    <span className="text-green-600">LLM 可用</span>
-                  )}
-                  {connectionStatus.embedding === 'error' && (
-                    <span className="text-red-600">LLM 不可用</span>
-                  )}
-                </Space>
-              </Form.Item>
+              {/* LLM 测试连接功能暂未实现 */}
 
               <Divider />
 
@@ -417,105 +434,12 @@ export default function Settings() {
           </Card>
         </TabPane>
 
-        {/* Weaviate 配置 */}
-        <TabPane tab="向量数据库" key="weaviate">
-          <Card>
-            <Alert
-              message="Weaviate 配置"
-              description="配置 Weaviate 向量数据库连接，用于存储和检索向量化的测试知识"
-              type="info"
-              showIcon
-              className="mb-6"
-            />
-
-            <Form form={form} layout="vertical">
-              <Form.Item
-                name="weaviate_host"
-                label="Weaviate 地址"
-                rules={[{ required: true, message: '请输入 Weaviate 地址' }]}
-                initialValue="localhost"
-              >
-                <Input placeholder="例如: localhost 或 weaviate.example.com" />
-              </Form.Item>
-
-              <Form.Item
-                name="weaviate_port"
-                label="端口"
-                rules={[{ required: true, message: '请输入端口' }]}
-                initialValue={8080}
-              >
-                <InputNumber min={1} max={65535} style={{ width: '100%' }} />
-              </Form.Item>
-
-              <Form.Item
-                name="weaviate_scheme"
-                label="协议"
-                rules={[{ required: true, message: '请选择协议' }]}
-                initialValue="http"
-              >
-                <Select>
-                  <Select.Option value="http">HTTP</Select.Option>
-                  <Select.Option value="https">HTTPS</Select.Option>
-                </Select>
-              </Form.Item>
-
-              <Form.Item name="weaviate_api_key" label="API Key（可选）">
-                <Input.Password placeholder="如果 Weaviate 需要认证，请输入 API Key" />
-              </Form.Item>
-
-              <Form.Item>
-                <Space>
-                  <Button
-                    onClick={testWeaviateConnection}
-                    loading={testingConnection}
-                    icon={
-                      connectionStatus.weaviate === 'success' ? (
-                        <CheckCircleOutlined style={{ color: '#52c41a' }} />
-                      ) : connectionStatus.weaviate === 'error' ? (
-                        <CloseCircleOutlined style={{ color: '#ff4d4f' }} />
-                      ) : undefined
-                    }
-                  >
-                    测试连接
-                  </Button>
-                  {connectionStatus.weaviate === 'success' && (
-                    <span className="text-green-600">连接成功</span>
-                  )}
-                  {connectionStatus.weaviate === 'error' && (
-                    <span className="text-red-600">连接失败</span>
-                  )}
-                </Space>
-              </Form.Item>
-
-              <Divider />
-
-              <h3 className="text-lg font-bold mb-4">Collection 配置</h3>
-
-              <Form.Item
-                name="prd_collection_name"
-                label="PRD Collection 名称"
-                initialValue="PRDDocuments"
-              >
-                <Input placeholder="PRD 文档的 Collection 名称" />
-              </Form.Item>
-
-              <Form.Item
-                name="testcase_collection_name"
-                label="TestCase Collection 名称"
-                initialValue="TestCases"
-              >
-                <Input placeholder="测试用例的 Collection 名称" />
-              </Form.Item>
-            </Form>
-          </Card>
-        </TabPane>
-
-        {/* Embedding 模型配置 */}
+        {/* 向量化模型配置 */}
         <TabPane tab="向量化模型" key="embedding">
           <Card>
             <Alert
               message="Embedding 模型配置"
-              description="配置用于文本向量化的 Embedding 模型，支持 OpenAI、Claude、本地模型等"
+              description="配置用于文本向量化的 Embedding 模型，支持 OpenAI、火山引擎等"
               type="info"
               showIcon
               className="mb-6"
@@ -525,25 +449,19 @@ export default function Settings() {
               <Form.Item
                 name="embedding_provider"
                 label="模型提供商"
-                rules={[{ required: true, message: '请选择模型提供商' }]}
-                initialValue="openai"
+                rules={[{ required: true, message: '请输入模型提供商' }]}
+                tooltip="支持的提供商：openai, volcano_ark, volcengine 等"
               >
-                <Select>
-                  <Select.Option value="openai">OpenAI</Select.Option>
-                  <Select.Option value="claude">Claude (Anthropic)</Select.Option>
-                  <Select.Option value="azure">Azure OpenAI</Select.Option>
-                  <Select.Option value="local">本地模型</Select.Option>
-                  <Select.Option value="custom">自定义 API</Select.Option>
-                </Select>
+                <Input placeholder="例如: volcano_ark 或 openai" />
               </Form.Item>
 
               <Form.Item
                 name="embedding_model"
                 label="模型名称"
                 rules={[{ required: true, message: '请输入模型名称' }]}
-                initialValue="text-embedding-3-small"
+                tooltip="火山引擎格式：ep-xxxxxx，OpenAI 格式：text-embedding-3-small"
               >
-                <Input placeholder="例如: text-embedding-3-small" />
+                <Input placeholder="例如: ep-20260121110525-5mmss" />
               </Form.Item>
 
               <Form.Item
@@ -554,16 +472,8 @@ export default function Settings() {
                 <Input.Password placeholder="请输入 API Key" />
               </Form.Item>
 
-              <Form.Item name="embedding_api_base" label="API Base URL（可选）">
-                <Input placeholder="例如: https://api.openai.com/v1" />
-              </Form.Item>
-
-              <Form.Item
-                name="embedding_dimension"
-                label="向量维度"
-                initialValue={1536}
-              >
-                <InputNumber min={128} max={4096} style={{ width: '100%' }} />
+              <Form.Item name="embedding_base_url" label="API Base URL（可选）" tooltip="火山引擎默认：https://ark.cn-beijing.volces.com，OpenAI 默认：https://api.openai.com/v1">
+                <Input placeholder="留空使用默认地址" />
               </Form.Item>
 
               <Form.Item>
@@ -592,37 +502,28 @@ export default function Settings() {
 
               <Divider />
 
-              <h3 className="text-lg font-bold mb-4">向量化配置</h3>
-
-              <Form.Item
-                name="chunk_size"
-                label="分段大小（字符数）"
-                initialValue={500}
-                tooltip="长文档会被分成多个段落进行向量化"
-              >
-                <InputNumber min={100} max={2000} style={{ width: '100%' }} />
-              </Form.Item>
-
-              <Form.Item
-                name="chunk_overlap"
-                label="分段重叠（字符数）"
-                initialValue={50}
-                tooltip="相邻段落之间的重叠部分，避免语义被截断"
-              >
-                <InputNumber min={0} max={500} style={{ width: '100%' }} />
-              </Form.Item>
-
-              <Form.Item
-                name="auto_sync"
-                label="自动同步"
-                valuePropName="checked"
-                initialValue={true}
-              >
-                <Switch checkedChildren="开启" unCheckedChildren="关闭" />
-              </Form.Item>
+              <Alert
+                message="模型推荐"
+                description={
+                  <div className="mt-2">
+                    <p className="mb-2">
+                      <strong>火山引擎 Ark（推荐）</strong>：国内访问快，支持多模态 Embedding
+                    </p>
+                    <p className="mb-2">
+                      <strong>OpenAI</strong>：text-embedding-3-small 性价比高，text-embedding-3-large 效果更好
+                    </p>
+                    <p className="text-sm text-gray-500 mt-3">
+                      💡 提示：更换模型后，需要重新同步所有数据到向量数据库
+                    </p>
+                  </div>
+                }
+                type="success"
+              />
             </Form>
           </Card>
         </TabPane>
+
+        {/* 向量数据库配置已移至代码配置（config.yaml），不再在界面显示 */}
 
         {/* Dify 集成配置 */}
         <TabPane tab="Dify 集成" key="dify">

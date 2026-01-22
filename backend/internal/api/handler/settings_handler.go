@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"rag-backend/internal/domain/common"
+	"rag-backend/internal/pkg/weaviate"
 	"rag-backend/internal/service/settings"
 
 	"github.com/gin-gonic/gin"
@@ -117,5 +118,52 @@ func (h *SettingsHandler) BatchUpdateSettings(c *gin.Context) {
 
 	c.JSON(http.StatusOK, common.SuccessResponse(gin.H{
 		"message": "设置批量更新成功",
+	}))
+}
+
+// TestEmbeddingConnection 测试 Embedding 模型连接
+// @Summary 测试 Embedding 模型连接
+// @Description 测试指定的 Embedding 模型配置是否可用
+// @Tags Settings
+// @Accept json
+// @Produce json
+// @Param request body object true "Embedding 配置"
+// @Success 200 {object} common.Response
+// @Router /api/v1/settings/test/embedding [post]
+func (h *SettingsHandler) TestEmbeddingConnection(c *gin.Context) {
+	var req struct {
+		Provider string `json:"provider" binding:"required"`
+		Model    string `json:"model" binding:"required"`
+		APIKey   string `json:"apiKey" binding:"required"`
+		BaseURL  string `json:"baseURL"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, common.ErrorResponse(http.StatusBadRequest, "参数错误", err.Error()))
+		return
+	}
+
+	// 根据 provider 创建对应的 Embedding 服务
+	var embeddingService weaviate.EmbeddingService
+	switch req.Provider {
+	case "openai":
+		embeddingService = weaviate.NewOpenAIEmbeddingService(req.APIKey, req.BaseURL, req.Model)
+	case "volcano_ark", "volcengine": // 支持两种写法
+		embeddingService = weaviate.NewVolcanoArkEmbeddingService(req.APIKey, req.BaseURL, req.Model)
+	default:
+		c.JSON(http.StatusBadRequest, common.ErrorResponse(http.StatusBadRequest, "不支持的 provider", "支持的 provider: openai, volcano_ark, volcengine"))
+		return
+	}
+
+	// 使用简单的测试文本
+	testText := "这是一个测试文本，用于验证 Embedding 模型是否正常工作。"
+	_, err := embeddingService.Embed(c.Request.Context(), testText)
+	if err != nil {
+		c.JSON(http.StatusOK, common.ErrorResponse(http.StatusInternalServerError, "Embedding 模型连接失败", err.Error()))
+		return
+	}
+
+	c.JSON(http.StatusOK, common.SuccessResponse(gin.H{
+		"message": "Embedding 模型连接成功",
 	}))
 }

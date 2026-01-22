@@ -20,6 +20,12 @@ async function request<T>(
     const response = await fetch(url, defaultOptions);
     const result = await response.json();
     
+    // 检查响应体中的 code 字段（后端使用 HTTP 200 + code 字段表示错误）
+    if (result.code && result.code !== 200) {
+      throw new Error(result.message || result.error || `请求失败: ${result.code}`);
+    }
+    
+    // 检查 HTTP 状态码
     if (!response.ok) {
       throw new Error(result.message || `HTTP error! status: ${response.status}`);
     }
@@ -599,6 +605,18 @@ export const settingsAPI = {
     request<{ message: string }>('/settings/batch', {
       method: 'PUT',
       body: JSON.stringify(updates),
+    }),
+  
+  // 测试 Embedding 模型连接
+  testEmbedding: (data: {
+    provider: string;
+    model: string;
+    apiKey: string;
+    baseURL?: string;
+  }) =>
+    request<{ message: string }>('/settings/test/embedding', {
+      method: 'POST',
+      body: JSON.stringify(data),
     }),
 };
 

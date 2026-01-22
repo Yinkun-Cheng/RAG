@@ -36,6 +36,13 @@ type TestCaseData struct {
 
 // SyncPRDDocument 同步 PRD 文档到 Weaviate
 func (c *Client) SyncPRDDocument(ctx context.Context, data *PRDDocumentData, embedding []float32) error {
+	// 验证向量维度
+	if len(embedding) == 0 {
+		return fmt.Errorf("embedding vector is empty")
+	}
+	
+	log.Printf("Syncing PRD %s with embedding dimension: %d", data.PRDID, len(embedding))
+	
 	// 检查是否已存在
 	exists, weaviateID, err := c.checkPRDExists(ctx, data.PRDID)
 	if err != nil {
@@ -74,6 +81,13 @@ func (c *Client) SyncPRDDocument(ctx context.Context, data *PRDDocumentData, emb
 
 // SyncTestCase 同步测试用例到 Weaviate
 func (c *Client) SyncTestCase(ctx context.Context, data *TestCaseData, embedding []float32) error {
+	// 验证向量维度
+	if len(embedding) == 0 {
+		return fmt.Errorf("embedding vector is empty")
+	}
+	
+	log.Printf("Syncing TestCase %s with embedding dimension: %d", data.TestCaseID, len(embedding))
+	
 	// 检查是否已存在
 	exists, weaviateID, err := c.checkTestCaseExists(ctx, data.TestCaseID)
 	if err != nil {

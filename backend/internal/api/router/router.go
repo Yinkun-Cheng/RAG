@@ -63,6 +63,7 @@ func SetupRouter(router *gin.Engine, db *gorm.DB, weaviateClient *weaviate.Clien
 			settings.GET("/:category", settingsHandler.GetSettingsByCategory)
 			settings.PUT("/:key", settingsHandler.UpdateSetting)
 			settings.PUT("/batch", settingsHandler.BatchUpdateSettings)
+			settings.POST("/test/embedding", settingsHandler.TestEmbeddingConnection)
 		}
 
 		// 项目管理路由（不带参数的路由）

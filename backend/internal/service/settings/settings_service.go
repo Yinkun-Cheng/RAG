@@ -102,3 +102,19 @@ func (s *SettingsService) BatchUpdateSettings(ctx context.Context, updates map[s
 		return nil
 	})
 }
+
+// GetSettingValue 获取单个设置的值
+func (s *SettingsService) GetSettingValue(ctx context.Context, key string) (string, error) {
+	var value string
+	err := s.db.WithContext(ctx).
+		Table("global_settings").
+		Select("value").
+		Where("key = ?", key).
+		Scan(&value).Error
+
+	if err != nil {
+		return "", fmt.Errorf("获取设置失败: %w", err)
+	}
+
+	return value, nil
+}

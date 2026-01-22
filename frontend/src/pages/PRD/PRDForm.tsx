@@ -3,7 +3,6 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Form, Input, Select, Button, Card, Space, message, Spin } from 'antd';
 import { ArrowLeftOutlined, SaveOutlined, SendOutlined } from '@ant-design/icons';
 import MarkdownEditor from '../../components/MarkdownEditor';
-import TagSelect from '../../components/TagSelect';
 import api, { Module, Tag as TagType, AppVersion } from '../../api';
 
 export default function PRDForm() {

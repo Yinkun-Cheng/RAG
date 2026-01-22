@@ -140,9 +140,10 @@ export default function Search() {
       }
 
       const response = await api.search.search(projectId, searchData);
-      setResults(response.data.results || []);
+      const results = response.data.results || [];
+      setResults(results);
       
-      if (response.data.results.length === 0) {
+      if (results.length === 0) {
         message.info('未找到相关结果');
       }
     } catch (error: any) {
@@ -174,10 +175,6 @@ export default function Search() {
 
   const getTypeIcon = (type: string) => {
     return type === 'prd' ? <FileTextOutlined /> : <CheckSquareOutlined />;
-  };
-
-  const getTypeText = (type: string) => {
-    return type === 'prd' ? 'PRD 文档' : '测试用例';
   };
 
   const getScoreColor = (score: number) => {

@@ -41,7 +41,7 @@ func (c *Client) SyncPRDDocument(ctx context.Context, data *PRDDocumentData, emb
 		return fmt.Errorf("embedding vector is empty")
 	}
 	
-	log.Printf("Syncing PRD %s with embedding dimension: %d", data.PRDID, len(embedding))
+	log.Printf("📝 Syncing PRD %s with embedding dimension: %d", data.PRDID, len(embedding))
 	
 	// 检查是否已存在
 	exists, weaviateID, err := c.checkPRDExists(ctx, data.PRDID)
@@ -54,6 +54,7 @@ func (c *Client) SyncPRDDocument(ctx context.Context, data *PRDDocumentData, emb
 		"prd_id":     data.PRDID,
 		"project_id": data.ProjectID,
 		"title":      data.Title,
+		"content":    data.Content, // ✅ 添加 content 字段用于 BM25 检索
 		"status":     data.Status,
 		"created_at": data.CreatedAt.Format(time.RFC3339),
 	}
@@ -67,13 +68,13 @@ func (c *Client) SyncPRDDocument(ctx context.Context, data *PRDDocumentData, emb
 		if err := c.updateObject(ctx, weaviateID, PRDDocumentClass, properties, embedding); err != nil {
 			return fmt.Errorf("failed to update PRD: %w", err)
 		}
-		log.Printf("PRD %s updated in Weaviate", data.PRDID)
+		log.Printf("✅ PRD %s updated in Weaviate", data.PRDID)
 	} else {
 		// 创建新数据
 		if err := c.createObject(ctx, PRDDocumentClass, properties, embedding); err != nil {
 			return fmt.Errorf("failed to create PRD: %w", err)
 		}
-		log.Printf("PRD %s created in Weaviate", data.PRDID)
+		log.Printf("✅ PRD %s created in Weaviate", data.PRDID)
 	}
 
 	return nil
@@ -86,7 +87,7 @@ func (c *Client) SyncTestCase(ctx context.Context, data *TestCaseData, embedding
 		return fmt.Errorf("embedding vector is empty")
 	}
 	
-	log.Printf("Syncing TestCase %s with embedding dimension: %d", data.TestCaseID, len(embedding))
+	log.Printf("📝 Syncing TestCase %s with embedding dimension: %d", data.TestCaseID, len(embedding))
 	
 	// 检查是否已存在
 	exists, weaviateID, err := c.checkTestCaseExists(ctx, data.TestCaseID)
@@ -118,13 +119,13 @@ func (c *Client) SyncTestCase(ctx context.Context, data *TestCaseData, embedding
 		if err := c.updateObject(ctx, weaviateID, TestCaseClass, properties, embedding); err != nil {
 			return fmt.Errorf("failed to update test case: %w", err)
 		}
-		log.Printf("Test case %s updated in Weaviate", data.TestCaseID)
+		log.Printf("✅ Test case %s updated in Weaviate", data.TestCaseID)
 	} else {
 		// 创建新数据
 		if err := c.createObject(ctx, TestCaseClass, properties, embedding); err != nil {
 			return fmt.Errorf("failed to create test case: %w", err)
 		}
-		log.Printf("Test case %s created in Weaviate", data.TestCaseID)
+		log.Printf("✅ Test case %s created in Weaviate", data.TestCaseID)
 	}
 
 	return nil

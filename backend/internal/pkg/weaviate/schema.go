@@ -46,44 +46,73 @@ func (c *Client) createPRDDocumentSchema(ctx context.Context) error {
 
 	// 定义 PRDDocument Schema
 	// 向量化：title + content
-	// 存储：prd_id, project_id, module_id, title, status, created_at
+	// 存储：prd_id, project_id, module_id, title, content, status, created_at
 	classObj := &models.Class{
 		Class:       PRDDocumentClass,
-		Description: "PRD 文档向量存储，用于语义检索",
+		Description: "PRD 文档向量存储，用于语义检索和混合检索",
 		Vectorizer:  "none", // 不使用内置向量化，后端自己提供向量
 		VectorIndexConfig: map[string]interface{}{
 			"distance": "cosine",
 		},
+		// 配置 BM25 索引
+		InvertedIndexConfig: &models.InvertedIndexConfig{
+			Bm25: &models.BM25Config{
+				K1: 1.2,
+				B:  0.75,
+			},
+			CleanupIntervalSeconds: 60,
+		},
 		Properties: []*models.Property{
 			{
-				Name:        "prd_id",
-				DataType:    []string{"text"},
-				Description: "PRD 文档 ID（PostgreSQL 主键）",
+				Name:            "prd_id",
+				DataType:        []string{"text"},
+				Description:     "PRD 文档 ID（PostgreSQL 主键）",
+				IndexFilterable: boolPtr(true),
+				IndexSearchable: boolPtr(false), // ID 不需要全文搜索
 			},
 			{
-				Name:        "project_id",
-				DataType:    []string{"text"},
-				Description: "项目 ID",
+				Name:            "project_id",
+				DataType:        []string{"text"},
+				Description:     "项目 ID",
+				IndexFilterable: boolPtr(true),
+				IndexSearchable: boolPtr(false),
 			},
 			{
-				Name:        "module_id",
-				DataType:    []string{"text"},
-				Description: "模块 ID",
+				Name:            "module_id",
+				DataType:        []string{"text"},
+				Description:     "模块 ID",
+				IndexFilterable: boolPtr(true),
+				IndexSearchable: boolPtr(false),
 			},
 			{
-				Name:        "title",
-				DataType:    []string{"text"},
-				Description: "PRD 标题",
+				Name:            "title",
+				DataType:        []string{"text"},
+				Description:     "PRD 标题",
+				IndexFilterable: boolPtr(true),
+				IndexSearchable: boolPtr(true), // 标题需要全文搜索
+				Tokenization:    "word",         // 分词方式
 			},
 			{
-				Name:        "status",
-				DataType:    []string{"text"},
-				Description: "PRD 状态（draft/published/archived）",
+				Name:            "content",
+				DataType:        []string{"text"},
+				Description:     "PRD 内容（用于 BM25 关键词检索）",
+				IndexFilterable: boolPtr(false),
+				IndexSearchable: boolPtr(true), // 内容需要全文搜索
+				Tokenization:    "word",         // 分词方式
 			},
 			{
-				Name:        "created_at",
-				DataType:    []string{"date"},
-				Description: "创建时间",
+				Name:            "status",
+				DataType:        []string{"text"},
+				Description:     "PRD 状态（draft/published/archived）",
+				IndexFilterable: boolPtr(true),
+				IndexSearchable: boolPtr(false),
+			},
+			{
+				Name:            "created_at",
+				DataType:        []string{"date"},
+				Description:     "创建时间",
+				IndexFilterable: boolPtr(true),
+				IndexSearchable: boolPtr(false),
 			},
 		},
 	}
@@ -114,56 +143,83 @@ func (c *Client) createTestCaseSchema(ctx context.Context) error {
 	// 存储：test_case_id, project_id, module_id, prd_id, title, priority, type, status, created_at
 	classObj := &models.Class{
 		Class:       TestCaseClass,
-		Description: "测试用例向量存储，用于语义检索",
+		Description: "测试用例向量存储，用于语义检索和混合检索",
 		Vectorizer:  "none", // 不使用内置向量化，后端自己提供向量
 		VectorIndexConfig: map[string]interface{}{
 			"distance": "cosine",
 		},
+		// 配置 BM25 索引
+		InvertedIndexConfig: &models.InvertedIndexConfig{
+			Bm25: &models.BM25Config{
+				K1: 1.2,
+				B:  0.75,
+			},
+			CleanupIntervalSeconds: 60,
+		},
 		Properties: []*models.Property{
 			{
-				Name:        "test_case_id",
-				DataType:    []string{"text"},
-				Description: "测试用例 ID（PostgreSQL 主键）",
+				Name:            "test_case_id",
+				DataType:        []string{"text"},
+				Description:     "测试用例 ID（PostgreSQL 主键）",
+				IndexFilterable: boolPtr(true),
+				IndexSearchable: boolPtr(false),
 			},
 			{
-				Name:        "project_id",
-				DataType:    []string{"text"},
-				Description: "项目 ID",
+				Name:            "project_id",
+				DataType:        []string{"text"},
+				Description:     "项目 ID",
+				IndexFilterable: boolPtr(true),
+				IndexSearchable: boolPtr(false),
 			},
 			{
-				Name:        "module_id",
-				DataType:    []string{"text"},
-				Description: "模块 ID",
+				Name:            "module_id",
+				DataType:        []string{"text"},
+				Description:     "模块 ID",
+				IndexFilterable: boolPtr(true),
+				IndexSearchable: boolPtr(false),
 			},
 			{
-				Name:        "prd_id",
-				DataType:    []string{"text"},
-				Description: "关联的 PRD ID",
+				Name:            "prd_id",
+				DataType:        []string{"text"},
+				Description:     "关联的 PRD ID",
+				IndexFilterable: boolPtr(true),
+				IndexSearchable: boolPtr(false),
 			},
 			{
-				Name:        "title",
-				DataType:    []string{"text"},
-				Description: "测试用例标题",
+				Name:            "title",
+				DataType:        []string{"text"},
+				Description:     "测试用例标题",
+				IndexFilterable: boolPtr(true),
+				IndexSearchable: boolPtr(true), // 标题需要全文搜索
+				Tokenization:    "word",         // 分词方式
 			},
 			{
-				Name:        "priority",
-				DataType:    []string{"text"},
-				Description: "优先级（high/medium/low）",
+				Name:            "priority",
+				DataType:        []string{"text"},
+				Description:     "优先级（high/medium/low）",
+				IndexFilterable: boolPtr(true),
+				IndexSearchable: boolPtr(false),
 			},
 			{
-				Name:        "type",
-				DataType:    []string{"text"},
-				Description: "类型（functional/performance/security/ui）",
+				Name:            "type",
+				DataType:        []string{"text"},
+				Description:     "类型（functional/performance/security/ui）",
+				IndexFilterable: boolPtr(true),
+				IndexSearchable: boolPtr(false),
 			},
 			{
-				Name:        "status",
-				DataType:    []string{"text"},
-				Description: "状态（active/deprecated）",
+				Name:            "status",
+				DataType:        []string{"text"},
+				Description:     "状态（active/deprecated）",
+				IndexFilterable: boolPtr(true),
+				IndexSearchable: boolPtr(false),
 			},
 			{
-				Name:        "created_at",
-				DataType:    []string{"date"},
-				Description: "创建时间",
+				Name:            "created_at",
+				DataType:        []string{"date"},
+				Description:     "创建时间",
+				IndexFilterable: boolPtr(true),
+				IndexSearchable: boolPtr(false),
 			},
 		},
 	}
@@ -204,4 +260,9 @@ func (c *Client) ListSchemas(ctx context.Context) ([]*models.Class, error) {
 	}
 
 	return schema.Classes, nil
+}
+
+// boolPtr 返回 bool 指针（辅助函数）
+func boolPtr(b bool) *bool {
+	return &b
 }

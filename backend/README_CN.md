@@ -238,6 +238,47 @@ docker-compose up -d
 
 检查 `config.yaml` 中的数据库配置是否正确，确保 PostgreSQL 服务正在运行。
 
+### 向量维度不匹配错误
+
+**错误信息**: `vector lengths don't match: 1536 vs 2048`
+
+**原因**: Weaviate 中存储的向量维度与当前 Embedding 模型的维度不匹配。这通常发生在：
+1. 更换了 Embedding 模型提供商（如从 Mock 切换到火山引擎）
+2. 数据库配置错误导致使用了 Mock 服务同步数据
+
+**解决方案**:
+
+1. **检查当前向量维度**:
+   ```powershell
+   .\scripts\check_vector_dimension.ps1
+   ```
+
+2. **清空 Weaviate 并重新同步**:
+   ```powershell
+   # 方式 1: 使用脚本（推荐）
+   .\scripts\reset_weaviate.ps1
+   
+   # 方式 2: 手动执行
+   # 删除 schemas
+   Invoke-RestMethod -Uri "http://localhost:8009/v1/schema/PRDDocument" -Method Delete
+   Invoke-RestMethod -Uri "http://localhost:8009/v1/schema/TestCase" -Method Delete
+   
+   # 重启后端服务（会自动重新创建 schemas）
+   # 然后运行同步命令
+   cd backend
+   .\bin\sync.exe
+   ```
+
+3. **验证配置**:
+   - 检查数据库中的 `embedding_provider` 配置是否正确
+   - 确保 API Key 已正确配置
+   - 查看后端启动日志，确认使用的是正确的 Embedding 服务
+
+**预防措施**:
+- 更换 Embedding 模型后，必须重新同步所有数据
+- 不要在生产环境使用 Mock Embedding 服务
+- 定期检查向量维度是否一致
+
 ### 日志查看
 
 日志默认输出到 stdout，可以在 `config.yaml` 中修改 `logging.output` 指定日志文件路径。

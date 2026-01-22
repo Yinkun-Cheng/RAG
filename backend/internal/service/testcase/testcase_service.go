@@ -352,7 +352,18 @@ func (s *service) BatchDeleteTestCases(ids []string) error {
 	if len(ids) == 0 {
 		return errors.New("no test case IDs provided")
 	}
-	return s.repo.BatchDelete(ids)
+	
+	// 从 PostgreSQL 删除
+	if err := s.repo.BatchDelete(ids); err != nil {
+		return err
+	}
+	
+	// 异步从 Weaviate 删除
+	for _, id := range ids {
+		go s.deleteTestCaseFromVector(id)
+	}
+	
+	return nil
 }
 
 // AddTestCaseTag 为测试用例添加标签

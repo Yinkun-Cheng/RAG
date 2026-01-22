@@ -11,9 +11,10 @@ import (
 
 // EmbeddingManager Embedding 服务管理器
 type EmbeddingManager struct {
-	db              *gorm.DB
-	currentService  EmbeddingService
-	mu              sync.RWMutex
+	db                *gorm.DB
+	currentService    EmbeddingService
+	expectedDimension int // 期望的向量维度
+	mu                sync.RWMutex
 }
 
 // EmbeddingConfig Embedding 配置（从数据库读取）
@@ -100,34 +101,49 @@ func (m *EmbeddingManager) InitializeService(ctx context.Context) error {
 	}
 
 	var service EmbeddingService
+	var expectedDimension int
 
 	switch config.Provider {
 	case "openai":
 		if config.APIKey == "" {
-			log.Println("Warning: OpenAI API Key is empty, falling back to Mock service")
+			log.Println("⚠️  WARNING: OpenAI API Key is empty, falling back to Mock service")
+			log.Println("⚠️  Mock service uses 1536-dimensional vectors (OpenAI default)")
+			log.Println("⚠️  This may cause dimension mismatch if you switch to a real provider later!")
 			service = NewMockEmbeddingService()
+			expectedDimension = 1536
 		} else {
 			service = NewOpenAIEmbeddingService(config.APIKey, config.BaseURL, config.Model)
-			log.Printf("Initialized OpenAI Embedding Service (model: %s)", config.Model)
+			expectedDimension = 1536 // OpenAI text-embedding-ada-002 默认维度
+			log.Printf("✅ Initialized OpenAI Embedding Service (model: %s, expected dimension: %d)", config.Model, expectedDimension)
 		}
 	case "volcano_ark", "volcengine": // 支持两种写法（向后兼容）
 		if config.APIKey == "" {
-			log.Println("Warning: Volcano Ark API Key is empty, falling back to Mock service")
+			log.Println("⚠️  WARNING: Volcano Ark API Key is empty, falling back to Mock service")
+			log.Println("⚠️  Mock service uses 1536-dimensional vectors (OpenAI default)")
+			log.Println("⚠️  This may cause dimension mismatch if you switch to a real provider later!")
 			service = NewMockEmbeddingService()
+			expectedDimension = 1536
 		} else {
 			service = NewVolcanoArkEmbeddingService(config.APIKey, config.BaseURL, config.Model)
-			log.Printf("Initialized Volcano Ark Embedding Service (model: %s, provider: %s)", config.Model, config.Provider)
+			expectedDimension = 2048 // 火山引擎多模态 Embedding 默认维度
+			log.Printf("✅ Initialized Volcano Ark Embedding Service (model: %s, provider: %s, expected dimension: %d)", config.Model, config.Provider, expectedDimension)
 		}
 	case "mock":
 		service = NewMockEmbeddingService()
-		log.Println("Initialized Mock Embedding Service (for testing)")
+		expectedDimension = 1536
+		log.Println("⚠️  Initialized Mock Embedding Service (for testing, dimension: 1536)")
+		log.Println("⚠️  Mock service should NOT be used in production!")
 	default:
-		log.Printf("Unknown embedding provider: %s, falling back to Mock service", config.Provider)
+		log.Printf("⚠️  WARNING: Unknown embedding provider: %s, falling back to Mock service", config.Provider)
+		log.Println("⚠️  Mock service uses 1536-dimensional vectors (OpenAI default)")
+		log.Println("⚠️  This may cause dimension mismatch if you switch to a real provider later!")
 		service = NewMockEmbeddingService()
+		expectedDimension = 1536
 	}
 
 	m.mu.Lock()
 	m.currentService = service
+	m.expectedDimension = expectedDimension
 	m.mu.Unlock()
 
 	return nil
@@ -138,6 +154,30 @@ func (m *EmbeddingManager) GetService() EmbeddingService {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return m.currentService
+}
+
+// GetExpectedDimension 获取期望的向量维度
+func (m *EmbeddingManager) GetExpectedDimension() int {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.expectedDimension
+}
+
+// ValidateEmbedding 验证向量维度是否正确
+func (m *EmbeddingManager) ValidateEmbedding(embedding []float32) error {
+	m.mu.RLock()
+	expectedDim := m.expectedDimension
+	m.mu.RUnlock()
+
+	actualDim := len(embedding)
+	if actualDim != expectedDim {
+		return fmt.Errorf("❌ Vector dimension mismatch: expected %d, got %d. This usually means:\n"+
+			"1. You changed the embedding provider but didn't re-sync Weaviate data\n"+
+			"2. The embedding model returned unexpected dimension\n"+
+			"Solution: Delete Weaviate schema and re-sync all data with: cd backend && .\\bin\\sync.exe",
+			expectedDim, actualDim)
+	}
+	return nil
 }
 
 // ReloadService 重新加载 Embedding 服务（配置变更后调用）

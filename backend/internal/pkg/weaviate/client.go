@@ -2,8 +2,10 @@ package weaviate
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 
 	"rag-backend/internal/pkg/config"
 
@@ -134,6 +136,9 @@ func (c *Client) SearchTestCases(ctx context.Context, embedding []float32, limit
 
 // HybridSearchPRDs 混合检索 PRD 文档（结合向量检索和 BM25）
 func (c *Client) HybridSearchPRDs(ctx context.Context, query string, embedding []float32, limit int, threshold float32, alpha float32, filters map[string]interface{}) ([]SearchResult, error) {
+	// 🔍 调试日志
+	fmt.Printf("🔍 Hybrid Search PRDs: query=%s, alpha=%.2f, threshold=%.2f, limit=%d\n", query, alpha, threshold, limit)
+	
 	// 构建混合检索查询
 	hybrid := c.client.GraphQL().HybridArgumentBuilder().
 		WithQuery(query).
@@ -163,6 +168,14 @@ func (c *Client) HybridSearchPRDs(ctx context.Context, query string, embedding [
 	if err != nil {
 		return nil, err
 	}
+	
+	// 🔍 调试日志：打印原始结果
+	fmt.Printf("🔍 Hybrid Search returned %d results before filtering\n", len(results))
+	for i, r := range results {
+		if i < 5 { // 只打印前 5 个
+			fmt.Printf("  [%d] ID=%s, Score=%.4f\n", i+1, r.ID, r.Score)
+		}
+	}
 
 	// 应用阈值过滤并限制结果数量
 	// 注意：混合检索的 score 范围可能与 certainty 不同，需要归一化
@@ -186,6 +199,9 @@ func (c *Client) HybridSearchPRDs(ctx context.Context, query string, embedding [
 			break
 		}
 	}
+	
+	// 🔍 调试日志：打印过滤后的结果
+	fmt.Printf("🔍 After threshold filtering (>= %.2f): %d results\n", threshold, len(filteredResults))
 
 	return filteredResults, nil
 }
@@ -320,17 +336,43 @@ func (c *Client) parseHybridSearchResults(result *models.GraphQLResponse, classN
 
 		// 获取混合检索分数（使用 score 而不是 certainty）
 		var score float32 = 0
+		var explainScore string
 		if additional, ok := itemMap["_additional"].(map[string]interface{}); ok {
-			if hybridScore, ok := additional["score"].(float64); ok {
-				score = float32(hybridScore)
+			// 获取 explainScore
+			if explain, ok := additional["explainScore"].(string); ok {
+				explainScore = explain
 			}
 			
-			// 打印调试信息
-			if explainScore, ok := additional["explainScore"].(string); ok {
-				log.Printf("混合检索结果 - ID: %s, Score: %.4f, Explain: %s", id, score, explainScore)
-			} else {
-				log.Printf("混合检索结果 - ID: %s, Score: %.4f", id, score)
+			// 尝试多种方式获取分数
+			// Weaviate 可能返回字符串、float64、float32 等不同类型
+			if scoreValue, exists := additional["score"]; exists && scoreValue != nil {
+				switch v := scoreValue.(type) {
+				case string:
+					// 字符串类型：需要解析
+					if f, err := strconv.ParseFloat(v, 32); err == nil {
+						score = float32(f)
+					} else {
+						log.Printf("⚠️  Failed to parse score string: %s, error: %v", v, err)
+					}
+				case float64:
+					score = float32(v)
+				case float32:
+					score = v
+				case int:
+					score = float32(v)
+				case int64:
+					score = float32(v)
+				case json.Number:
+					if f, err := v.Float64(); err == nil {
+						score = float32(f)
+					}
+				default:
+					log.Printf("⚠️  Unexpected score type: %T, value: %v", v, v)
+				}
 			}
+			
+			// 🔍 调试：打印解析结果
+			log.Printf("✅ 混合检索结果 - ID: %s, Score: %.4f, Explain: %s", id, score, explainScore)
 		}
 
 		if id != "" {

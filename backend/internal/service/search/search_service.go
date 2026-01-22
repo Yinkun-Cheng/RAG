@@ -262,10 +262,15 @@ func (s *SearchService) searchPRDs(ctx context.Context, embedding []float32, req
 
 	// 转换结果
 	var results []SearchResult
+	var orphanedIDs []string // 记录孤立的向量数据（PostgreSQL 中不存在）
+	
 	for _, wr := range weaviateResults {
 		// 从 PostgreSQL 获取完整数据
 		prd, err := s.prdRepo.GetByID(wr.ID)
 		if err != nil {
+			// 记录孤立数据
+			orphanedIDs = append(orphanedIDs, wr.ID)
+			fmt.Printf("⚠️  Found orphaned PRD vector in Weaviate: %s (not found in PostgreSQL)\n", wr.ID)
 			continue // 跳过无法获取的记录
 		}
 
@@ -286,8 +291,26 @@ func (s *SearchService) searchPRDs(ctx context.Context, embedding []float32, req
 			Highlights: s.extractHighlights(prd.Content, req.Query, 3),
 		})
 	}
+	
+	// 异步清理孤立的向量数据
+	if len(orphanedIDs) > 0 {
+		fmt.Printf("🧹 Cleaning up %d orphaned PRD vectors from Weaviate\n", len(orphanedIDs))
+		go s.cleanupOrphanedPRDs(orphanedIDs)
+	}
 
 	return results, nil
+}
+
+// cleanupOrphanedPRDs 清理孤立的 PRD 向量数据
+func (s *SearchService) cleanupOrphanedPRDs(ids []string) {
+	ctx := context.Background()
+	for _, id := range ids {
+		if err := s.weaviateClient.DeletePRDDocument(ctx, id); err != nil {
+			fmt.Printf("⚠️  Failed to cleanup orphaned PRD %s: %v\n", id, err)
+		} else {
+			fmt.Printf("✅ Cleaned up orphaned PRD %s\n", id)
+		}
+	}
 }
 
 // searchTestCases 搜索测试用例
@@ -313,10 +336,15 @@ func (s *SearchService) searchTestCases(ctx context.Context, embedding []float32
 
 	// 转换结果
 	var results []SearchResult
+	var orphanedIDs []string // 记录孤立的向量数据（PostgreSQL 中不存在）
+	
 	for _, wr := range weaviateResults {
 		// 从 PostgreSQL 获取完整数据
 		testcase, err := s.testcaseRepo.GetByID(wr.ID)
 		if err != nil {
+			// 记录孤立数据
+			orphanedIDs = append(orphanedIDs, wr.ID)
+			fmt.Printf("⚠️  Found orphaned TestCase vector in Weaviate: %s (not found in PostgreSQL)\n", wr.ID)
 			continue // 跳过无法获取的记录
 		}
 
@@ -339,8 +367,26 @@ func (s *SearchService) searchTestCases(ctx context.Context, embedding []float32
 			Highlights: []string{testcase.Title},
 		})
 	}
+	
+	// 异步清理孤立的向量数据
+	if len(orphanedIDs) > 0 {
+		fmt.Printf("🧹 Cleaning up %d orphaned TestCase vectors from Weaviate\n", len(orphanedIDs))
+		go s.cleanupOrphanedTestCases(orphanedIDs)
+	}
 
 	return results, nil
+}
+
+// cleanupOrphanedTestCases 清理孤立的测试用例向量数据
+func (s *SearchService) cleanupOrphanedTestCases(ids []string) {
+	ctx := context.Background()
+	for _, id := range ids {
+		if err := s.weaviateClient.DeleteTestCase(ctx, id); err != nil {
+			fmt.Printf("⚠️  Failed to cleanup orphaned TestCase %s: %v\n", id, err)
+		} else {
+			fmt.Printf("✅ Cleaned up orphaned TestCase %s\n", id)
+		}
+	}
 }
 
 // buildPRDFilters 构建 PRD 过滤条件

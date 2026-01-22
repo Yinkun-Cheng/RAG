@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"rag-backend/internal/domain/common"
@@ -63,7 +64,7 @@ type CreateTestCaseRequest struct {
 	ModuleID       *string            `json:"module_id"`
 	Precondition   string             `json:"precondition"`
 	ExpectedResult string             `json:"expected_result" binding:"required"`
-	Priority       string             `json:"priority" binding:"required,oneof=high medium low"`
+	Priority       string             `json:"priority" binding:"required,oneof=P0 P1 P2 P3"`
 	Type           string             `json:"type" binding:"required,oneof=functional performance security ui"`
 	Steps          []TestStepRequest  `json:"steps"`
 }
@@ -76,7 +77,7 @@ type UpdateTestCaseRequest struct {
 	ModuleID       *string            `json:"module_id"`
 	Precondition   *string            `json:"precondition"`
 	ExpectedResult *string            `json:"expected_result"`
-	Priority       *string            `json:"priority" binding:"omitempty,oneof=high medium low"`
+	Priority       *string            `json:"priority" binding:"omitempty,oneof=P0 P1 P2 P3"`
 	Type           *string            `json:"type" binding:"omitempty,oneof=functional performance security ui"`
 	Status         *string            `json:"status" binding:"omitempty,oneof=active deprecated"`
 	Steps          *[]TestStepRequest `json:"steps"`
@@ -265,20 +266,32 @@ func (s *service) UpdateTestCase(id string, req *UpdateTestCaseRequest) (*testca
 	}
 
 	// 更新测试步骤
+	// 只要 req.Steps 不为 nil，就表示前端想要更新步骤（即使是空数组）
 	if req.Steps != nil {
-		steps := make([]*testcase.TestStep, len(*req.Steps))
-		for i, stepReq := range *req.Steps {
-			steps[i] = &testcase.TestStep{
-				ID:          uuid.New().String(),
-				TestCaseID:  tc.ID,
-				StepOrder:   stepReq.StepOrder,
-				Description: stepReq.Description,
-				TestData:    stepReq.TestData,
-				Expected:    stepReq.Expected,
-			}
-		}
-		if err := s.stepRepo.UpdateBatch(steps); err != nil {
+		// 先删除旧步骤
+		if err := s.stepRepo.DeleteByTestCaseID(tc.ID); err != nil {
 			return nil, err
+		}
+		
+		// 清空 tc.Steps，避免 GORM 的 Save 方法自动保存旧步骤
+		tc.Steps = nil
+		
+		// 如果有新步骤，则创建
+		if len(*req.Steps) > 0 {
+			steps := make([]*testcase.TestStep, len(*req.Steps))
+			for i, stepReq := range *req.Steps {
+				steps[i] = &testcase.TestStep{
+					ID:          uuid.New().String(),
+					TestCaseID:  tc.ID,
+					StepOrder:   stepReq.StepOrder,
+					Description: stepReq.Description,
+					TestData:    stepReq.TestData,
+					Expected:    stepReq.Expected,
+				}
+			}
+			if err := s.stepRepo.CreateBatch(steps); err != nil {
+				return nil, err
+			}
 		}
 		changeLog += "测试步骤已更新; "
 		contentChanged = true

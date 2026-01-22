@@ -176,7 +176,7 @@ CREATE TABLE IF NOT EXISTS test_cases (
     module_id VARCHAR(36) REFERENCES modules(id) ON DELETE SET NULL,
     precondition TEXT,
     expected_result TEXT NOT NULL,
-    priority VARCHAR(10) NOT NULL DEFAULT 'medium',
+    priority VARCHAR(10) NOT NULL DEFAULT 'P2',
     type VARCHAR(50) NOT NULL DEFAULT 'functional',
     status VARCHAR(20) NOT NULL DEFAULT 'active',
     version INT NOT NULL DEFAULT 1,

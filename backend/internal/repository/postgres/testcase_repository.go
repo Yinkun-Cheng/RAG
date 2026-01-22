@@ -127,6 +127,9 @@ func (r *testCaseRepository) List(params *TestCaseListParams) ([]*testcase.TestC
 		Preload("AppVersion").
 		Preload("PRD").
 		Preload("Tags").
+		Preload("Steps", func(db *gorm.DB) *gorm.DB {
+			return db.Order("step_order ASC")
+		}).
 		Order("created_at DESC").
 		Limit(params.PageSize).
 		Offset(offset).

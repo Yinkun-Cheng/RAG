@@ -353,10 +353,10 @@ export const prdAPI = {
 // ============================================
 
 export interface TestStep {
-  step_number: number;
-  operation: string;
+  step_order: number;
+  description: string;
   test_data: string;
-  expected_result: string;
+  expected: string;
 }
 
 export interface TestCase {

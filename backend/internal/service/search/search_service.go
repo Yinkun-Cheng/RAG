@@ -192,6 +192,8 @@ func (s *SearchService) Search(ctx context.Context, req *SearchRequest) (*Search
 		}
 		// 🔥 多因素智能重排
 		prdResults = s.rerankPRDResults(prdResults, req.Query)
+		// ✅ 重排后应用阈值过滤
+		prdResults = s.applyThresholdFilter(prdResults, req.ScoreThreshold)
 		results = append(results, prdResults...)
 
 	case SearchTypeTestCase:
@@ -201,6 +203,8 @@ func (s *SearchService) Search(ctx context.Context, req *SearchRequest) (*Search
 		}
 		// 🔥 多因素智能重排
 		testcaseResults = s.rerankTestCaseResults(testcaseResults, req.Query)
+		// ✅ 重排后应用阈值过滤
+		testcaseResults = s.applyThresholdFilter(testcaseResults, req.ScoreThreshold)
 		results = append(results, testcaseResults...)
 
 	case SearchTypeAll:
@@ -211,6 +215,8 @@ func (s *SearchService) Search(ctx context.Context, req *SearchRequest) (*Search
 		}
 		// 🔥 多因素智能重排
 		prdResults = s.rerankPRDResults(prdResults, req.Query)
+		// ✅ 重排后应用阈值过滤
+		prdResults = s.applyThresholdFilter(prdResults, req.ScoreThreshold)
 		results = append(results, prdResults...)
 
 		// 搜索测试用例
@@ -220,6 +226,8 @@ func (s *SearchService) Search(ctx context.Context, req *SearchRequest) (*Search
 		}
 		// 🔥 多因素智能重排
 		testcaseResults = s.rerankTestCaseResults(testcaseResults, req.Query)
+		// ✅ 重排后应用阈值过滤
+		testcaseResults = s.applyThresholdFilter(testcaseResults, req.ScoreThreshold)
 		results = append(results, testcaseResults...)
 
 	default:
@@ -248,12 +256,14 @@ func (s *SearchService) searchPRDs(ctx context.Context, embedding []float32, req
 	var err error
 
 	// 根据 alpha 值选择检索方式
+	// 注意：这里不应用阈值过滤，因为重排后分数会变化
+	// 阈值过滤应该在重排后应用
 	if req.Alpha != nil && *req.Alpha < 1.0 {
-		// 混合检索
-		weaviateResults, err = s.weaviateClient.HybridSearchPRDs(ctx, req.Query, embedding, req.Limit, req.ScoreThreshold, *req.Alpha, filters)
+		// 混合检索 - 不应用阈值，获取更多结果用于重排
+		weaviateResults, err = s.weaviateClient.HybridSearchPRDs(ctx, req.Query, embedding, req.Limit*3, 0.0, *req.Alpha, filters)
 	} else {
-		// 纯向量检索
-		weaviateResults, err = s.weaviateClient.SearchPRDs(ctx, embedding, req.Limit, req.ScoreThreshold, filters)
+		// 纯向量检索 - 不应用阈值，获取更多结果用于重排
+		weaviateResults, err = s.weaviateClient.SearchPRDs(ctx, embedding, req.Limit*3, 0.0, filters)
 	}
 
 	if err != nil {
@@ -322,12 +332,14 @@ func (s *SearchService) searchTestCases(ctx context.Context, embedding []float32
 	var err error
 
 	// 根据 alpha 值选择检索方式
+	// 注意：这里不应用阈值过滤，因为重排后分数会变化
+	// 阈值过滤应该在重排后应用
 	if req.Alpha != nil && *req.Alpha < 1.0 {
-		// 混合检索
-		weaviateResults, err = s.weaviateClient.HybridSearchTestCases(ctx, req.Query, embedding, req.Limit, req.ScoreThreshold, *req.Alpha, filters)
+		// 混合检索 - 不应用阈值，获取更多结果用于重排
+		weaviateResults, err = s.weaviateClient.HybridSearchTestCases(ctx, req.Query, embedding, req.Limit*3, 0.0, *req.Alpha, filters)
 	} else {
-		// 纯向量检索
-		weaviateResults, err = s.weaviateClient.SearchTestCases(ctx, embedding, req.Limit, req.ScoreThreshold, filters)
+		// 纯向量检索 - 不应用阈值，获取更多结果用于重排
+		weaviateResults, err = s.weaviateClient.SearchTestCases(ctx, embedding, req.Limit*3, 0.0, filters)
 	}
 
 	if err != nil {
@@ -480,6 +492,24 @@ func (s *SearchService) extractHighlights(content, query string, count int) []st
 	}
 
 	return highlights
+}
+
+// applyThresholdFilter 应用阈值过滤
+// 在重排后应用，过滤掉分数低于阈值的结果
+func (s *SearchService) applyThresholdFilter(results []SearchResult, threshold float32) []SearchResult {
+	var filtered []SearchResult
+	for _, r := range results {
+		if r.Score >= threshold {
+			filtered = append(filtered, r)
+		}
+	}
+	
+	// 🔍 调试日志
+	if len(filtered) < len(results) {
+		fmt.Printf("🔍 Threshold filter: %d results -> %d results (threshold=%.2f)\n", len(results), len(filtered), threshold)
+	}
+	
+	return filtered
 }
 
 // sortAndLimitResults 排序并限制结果

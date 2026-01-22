@@ -177,20 +177,22 @@ func (c *Client) HybridSearchPRDs(ctx context.Context, query string, embedding [
 		}
 	}
 
-	// 应用阈值过滤并限制结果数量
-	// 注意：混合检索的 score 范围可能与 certainty 不同，需要归一化
+	// 🔍 调试日志：打印过滤前的结果
+	fmt.Printf("🔍 Before threshold filtering: %d results\n", len(results))
+	for i, r := range results {
+		if i < 5 { // 只打印前 5 个
+			fmt.Printf("  [%d] ID=%s, Score=%.4f\n", i+1, r.ID, r.Score)
+		}
+	}
+	
+	// 应用阈值过滤
+	// 注意：不要在这里过滤，因为 Weaviate 已经返回了符合条件的结果
+	// 阈值应该在查询时就应用，而不是在结果返回后再过滤
+	// 但是 Weaviate 的混合检索不支持 certainty 参数，所以我们需要手动过滤
 	var filteredResults []SearchResult
 	for _, r := range results {
-		// 混合检索的 score 通常在 0-1 之间，但可能超过 1
-		// 我们将其归一化到 0-1 范围
-		normalizedScore := r.Score
-		if normalizedScore > 1.0 {
-			normalizedScore = 1.0
-		}
-		
 		// 应用阈值过滤
-		if normalizedScore >= threshold {
-			r.Score = normalizedScore
+		if r.Score >= threshold {
 			filteredResults = append(filteredResults, r)
 		}
 		
@@ -202,6 +204,11 @@ func (c *Client) HybridSearchPRDs(ctx context.Context, query string, embedding [
 	
 	// 🔍 调试日志：打印过滤后的结果
 	fmt.Printf("🔍 After threshold filtering (>= %.2f): %d results\n", threshold, len(filteredResults))
+	for i, r := range filteredResults {
+		if i < 5 { // 只打印前 5 个
+			fmt.Printf("  [%d] ID=%s, Score=%.4f\n", i+1, r.ID, r.Score)
+		}
+	}
 
 	return filteredResults, nil
 }

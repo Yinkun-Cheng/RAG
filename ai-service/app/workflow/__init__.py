@@ -8,6 +8,7 @@ from .base import BaseWorkflow, WorkflowError, WorkflowResult
 from .test_case_generation_workflow import TestCaseGenerationWorkflow
 from .impact_analysis_workflow import ImpactAnalysisWorkflow
 from .regression_recommendation_workflow import RegressionRecommendationWorkflow
+from .test_case_optimization_workflow import TestCaseOptimizationWorkflow
 
 __all__ = [
     'BaseWorkflow',
@@ -16,4 +17,5 @@ __all__ = [
     'TestCaseGenerationWorkflow',
     'ImpactAnalysisWorkflow',
     'RegressionRecommendationWorkflow',
+    'TestCaseOptimizationWorkflow',
 ]

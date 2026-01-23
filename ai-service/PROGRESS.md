@@ -231,7 +231,9 @@ Python 存储工具 → Go 后端测试用例 API → PostgreSQL + Weaviate
 | **属性测试 - 测试用例生成** | **10** | **✅ 全部通过** |
 | **ImpactAnalysisAgent** | **11** | **✅ 全部通过** |
 | **ImpactAnalysisWorkflow** | **9** | **✅ 全部通过** |
-| **总计** | **199** | **✅ 全部通过** |
+| **RegressionRecommendationWorkflow** | **13** | **✅ 全部通过** |
+| **TestCaseOptimizationWorkflow** | **15** | **✅ 全部通过** |
+| **总计** | **228** | **✅ 全部通过** |
 
 ---
 
@@ -381,20 +383,97 @@ Python 存储工具 → Go 后端测试用例 API → PostgreSQL + Weaviate
 
 ---
 
+### ✅ 任务 6.5: 实现 RegressionRecommendationWorkflow
+- [x] 6.5 实现 RegressionRecommendationWorkflow（13 个测试）
+
+**特性**:
+- **RegressionRecommendationWorkflow**: 完整的回归测试推荐工作流
+  - 基于版本变更信息推荐需要执行的回归测试用例
+  - 四步工作流：获取变更模块 → 检索测试用例 → 去重 → 排序推荐
+  - 每个步骤都有完善的错误处理
+  - 支持部分失败时继续执行（模块检索失败时）
+  - 提供详细的元数据（候选数量、去重数量、推荐数量等）
+  - 支持自定义推荐数量限制和优先级过滤
+
+**工作流程**:
+1. 获取变更的模块列表
+2. 为每个模块检索相关测试用例（每个模块最多 20 个）
+3. 去重测试用例（基于 ID）
+4. 根据优先级和相似度分数排序
+5. 限制推荐数量并返回
+
+**排序规则**:
+- 优先级：P0 > P1 > P2 > P3
+- 相同优先级按相似度分数降序
+
+**文件**:
+- `app/workflow/regression_recommendation_workflow.py` - 回归测试推荐工作流
+- `app/workflow/__init__.py` - 导出 RegressionRecommendationWorkflow
+- `tests/test_regression_recommendation_workflow.py` - 回归测试推荐工作流测试（13 个测试）
+
+---
+
+### ✅ 任务 6.6: 实现 TestCaseOptimizationWorkflow
+- [x] 6.6 实现 TestCaseOptimizationWorkflow（15 个测试）
+
+**特性**:
+- **TestCaseOptimizationWorkflow**: 完整的测试用例优化工作流
+  - 分析现有测试用例的质量，识别缺失的测试点，并生成补充测试用例
+  - 六步工作流：获取现有用例 → 质量检查 → 检索 PRD 并分析需求 → 识别缺失测试点 → 生成补充用例 → 生成优化建议
+  - 每个步骤都有完善的错误处理
+  - 支持部分失败时继续执行（质量检查、PRD 检索、覆盖率检查失败时）
+  - 提供详细的优化建议（质量问题、缺失测试点、补充用例）
+  - 支持自动搜索现有用例或使用提供的用例列表
+
+**工作流程**:
+1. 获取现有测试用例（通过搜索或使用提供的列表）
+2. 对每个测试用例执行质量检查
+3. 检索相关 PRD 并分析需求
+4. 识别缺失的测试点（覆盖率检查）
+5. 生成补充测试用例（针对缺失的测试点）
+6. 生成优化建议
+
+**优化建议类型**:
+- 质量问题修复建议
+- 覆盖率提升建议
+- 补充用例添加建议
+- 整体测试策略建议
+
+**文件**:
+- `app/workflow/test_case_optimization_workflow.py` - 测试用例优化工作流
+- `app/workflow/__init__.py` - 导出 TestCaseOptimizationWorkflow
+- `tests/test_test_case_optimization_workflow.py` - 测试用例优化工作流测试（15 个测试）
+
+---
+
 ## 下一步任务
 
-### 🔄 任务 6: 实现 Workflow 层（工作流编排）
+### ✅ 任务 6: 实现 Workflow 层（工作流编排）- 已完成
 - [x] 6.1 实现 TestCaseGenerationWorkflow
 - [x] 6.2 为测试用例生成编写属性测试
 - [x] 6.3 为完整工作流编写集成测试
 - [x] 6.4 实现 ImpactAnalysisWorkflow
-- [ ] 6.5 实现 RegressionRecommendationWorkflow
-- [ ] 6.6 实现 TestCaseOptimizationWorkflow
+- [x] 6.5 实现 RegressionRecommendationWorkflow
+- [x] 6.6 实现 TestCaseOptimizationWorkflow
 
 **说明**：
 - Workflow 是工作流编排器，负责协调多个 Subagent 和 Tool 完成复杂业务流程
 - 不同于规则库（如 Claude Code 的 Skills），这里的 Workflow 包含可执行的业务逻辑
-- 例如：TestCaseGenerationWorkflow 会依次调用检索工具、需求分析 Agent、测试设计 Agent、质量审查 Agent 等
+- 已完成所有 4 个核心工作流：
+  1. **TestCaseGenerationWorkflow**: 测试用例生成（检索 → 分析 → 设计 → 审查 → 格式化）
+  2. **ImpactAnalysisWorkflow**: 影响分析（检索 PRD → 检索测试用例 → 分析影响 → 返回报告）
+  3. **RegressionRecommendationWorkflow**: 回归测试推荐（获取变更模块 → 检索测试用例 → 去重 → 排序推荐）
+  4. **TestCaseOptimizationWorkflow**: 测试用例优化（获取现有用例 → 质量检查 → 分析需求 → 识别缺失点 → 生成补充用例 → 优化建议）
+
+### 🔄 下一步：任务 7 - 实现 TestEngineerAgent（主 Agent）
+- [ ] 7.1 使用 workflow 注册表创建 TestEngineerAgent
+- [ ] 7.2 为 workflow 可扩展性编写属性测试
+- [ ] 7.3 为 workflow 自动发现编写属性测试
+- [ ] 7.4 实现任务分类逻辑
+- [ ] 7.5 实现 process_request 方法
+- [ ] 7.6 为结构化错误响应编写属性测试
+- [ ] 7.7 实现对话上下文管理器
+- [ ] 7.8 为对话上下文管理编写单元测试
 
 ---
 

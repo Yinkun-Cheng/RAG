@@ -183,7 +183,7 @@
     - 实现排名和推荐逻辑编排
     - _需求: 5.1_
   
-  - [ ] 6.6 实现 TestCaseOptimizationWorkflow
+  - [x] 6.6 实现 TestCaseOptimizationWorkflow
     - 创建用于测试用例优化的工作流
     - 实现差距识别和补充生成流程
     - _需求: 4.3_

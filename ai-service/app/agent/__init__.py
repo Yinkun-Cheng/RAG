@@ -16,6 +16,10 @@ from app.agent.quality_review_agent import (
     QualityReviewAgent,
     ReviewResult,
 )
+from app.agent.impact_analysis_agent import (
+    ImpactAnalysisAgent,
+    ImpactReport,
+)
 
 __all__ = [
     'RequirementAnalysisAgent',
@@ -24,4 +28,6 @@ __all__ = [
     'TestCaseDesign',
     'QualityReviewAgent',
     'ReviewResult',
+    'ImpactAnalysisAgent',
+    'ImpactReport',
 ]

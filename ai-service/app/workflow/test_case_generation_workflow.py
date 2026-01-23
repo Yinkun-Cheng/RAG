@@ -127,7 +127,7 @@ class TestCaseGenerationWorkflow(BaseWorkflow):
             try:
                 analysis_result = await self.requirement_agent.analyze(
                     requirement=requirement,
-                    historical_prds=historical_prds
+                    context={'historical_prds': historical_prds}
                 )
                 logger.info(f"需求分析完成: {len(analysis_result.functional_points)} 个功能点")
             except Exception as e:

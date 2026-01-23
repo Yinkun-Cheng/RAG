@@ -20,6 +20,16 @@ from app.agent.impact_analysis_agent import (
     ImpactAnalysisAgent,
     ImpactReport,
 )
+from app.agent.test_engineer_agent import (
+    TestEngineerAgent,
+    AgentResponse,
+    TaskType,
+)
+from app.agent.conversation_manager import (
+    ConversationManager,
+    Conversation,
+    Message,
+)
 
 __all__ = [
     'RequirementAnalysisAgent',
@@ -30,4 +40,10 @@ __all__ = [
     'ReviewResult',
     'ImpactAnalysisAgent',
     'ImpactReport',
+    'TestEngineerAgent',
+    'AgentResponse',
+    'TaskType',
+    'ConversationManager',
+    'Conversation',
+    'Message',
 ]

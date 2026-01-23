@@ -118,7 +118,7 @@
 - [x] 4. 检查点 - 确保所有工具测试通过
   - 确保所有测试通过，如有问题请询问用户。
 
-- [ ] 5. 实现 Subagent 层
+- [x] 5. 实现 Subagent 层
   - [x] 5.1 实现 RequirementAnalysisAgent
     - 使用 LLM 和提示模板创建 agent
     - 实现用于需求提取的 analyze 方法
@@ -178,7 +178,7 @@
     - 实现变更分析流程编排
     - _需求: 5.1, 5.3_
   
-  - [ ] 6.5 实现 RegressionRecommendationWorkflow
+  - [x] 6.5 实现 RegressionRecommendationWorkflow
     - 创建用于回归测试推荐的工作流
     - 实现排名和推荐逻辑编排
     - _需求: 5.1_

@@ -229,7 +229,9 @@ Python 存储工具 → Go 后端测试用例 API → PostgreSQL + Weaviate
 | **QualityReviewAgent** | **13** | **✅ 全部通过** |
 | **TestCaseGenerationWorkflow** | **11** | **✅ 全部通过** |
 | **属性测试 - 测试用例生成** | **10** | **✅ 全部通过** |
-| **总计** | **179** | **✅ 全部通过** |
+| **ImpactAnalysisAgent** | **11** | **✅ 全部通过** |
+| **ImpactAnalysisWorkflow** | **9** | **✅ 全部通过** |
+| **总计** | **199** | **✅ 全部通过** |
 
 ---
 
@@ -341,14 +343,51 @@ Python 存储工具 → Go 后端测试用例 API → PostgreSQL + Weaviate
 
 ---
 
+### ✅ 任务 6.4: 实现 ImpactAnalysisWorkflow
+- [x] 6.4 实现 ImpactAnalysisWorkflow（20 个测试）
+
+**特性**:
+- **ImpactAnalysisAgent**: 分析需求变更对现有系统的影响
+  - 识别受影响的模块
+  - 识别需要更新的测试用例
+  - 评估变更风险（low, medium, high）
+  - 提供建议措施
+  - 分类变更类型（feature_add, feature_modify, feature_remove, bug_fix）
+  - 智能解析 LLM 响应（支持 JSON 和 markdown 代码块）
+  - 自动标准化风险等级和变更类型
+  - 支持缺失字段的默认值填充
+
+- **ImpactAnalysisWorkflow**: 完整的影响分析工作流
+  - 编排 ImpactAnalysisAgent 和检索工具完成影响分析
+  - 四步工作流：检索 PRD → 检索测试用例 → 分析影响 → 返回报告
+  - 每个步骤都有完善的错误处理
+  - 支持部分失败时继续执行（检索失败时）
+  - 提供详细的元数据（风险等级、变更类型、受影响数量等）
+  - 支持自定义检索数量限制
+
+**工作流程**:
+1. 检索相关的历史 PRD
+2. 获取相关的测试用例
+3. 调用 ImpactAnalysisAgent 分析影响
+4. 返回影响报告
+
+**文件**:
+- `app/agent/impact_analysis_agent.py` - 影响分析 Agent
+- `app/workflow/impact_analysis_workflow.py` - 影响分析工作流
+- `app/agent/__init__.py` - 导出 ImpactAnalysisAgent 和 ImpactReport
+- `app/workflow/__init__.py` - 导出 ImpactAnalysisWorkflow
+- `tests/test_impact_analysis_agent.py` - 影响分析 Agent 测试（11 个测试）
+- `tests/test_impact_analysis_workflow.py` - 影响分析工作流测试（9 个测试）
+
+---
+
 ## 下一步任务
 
 ### 🔄 任务 6: 实现 Workflow 层（工作流编排）
 - [x] 6.1 实现 TestCaseGenerationWorkflow
 - [x] 6.2 为测试用例生成编写属性测试
 - [x] 6.3 为完整工作流编写集成测试
-- [ ] 6.4 实现 ImpactAnalysisWorkflow
-- [ ] 6.4 实现 ImpactAnalysisWorkflow
+- [x] 6.4 实现 ImpactAnalysisWorkflow
 - [ ] 6.5 实现 RegressionRecommendationWorkflow
 - [ ] 6.6 实现 TestCaseOptimizationWorkflow
 

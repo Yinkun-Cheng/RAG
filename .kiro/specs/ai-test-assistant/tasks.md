@@ -105,7 +105,7 @@
     - 创建用于质量验证的 CheckQualityTool
     - _需求: 4.3_
   
-  - [-] 3.10 实现存储工具
+  - [x] 3.10 实现存储工具
     - 创建通过 Go 后端 API 保存的 SaveTestCaseTool
     - 创建通过 Go 后端 API 更新的 UpdateTestCaseTool
     - _注：通过 Go 后端 API 保存，不直接连接数据库_

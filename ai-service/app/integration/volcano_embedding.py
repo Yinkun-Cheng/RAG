@@ -3,6 +3,9 @@ Volcano Engine Embedding Service
 
 Provides async client for generating text embeddings using Volcano Engine API.
 Supports single and batch embedding generation with error handling.
+
+NOTE: Current retrieval tools have been refactored to use Go backend API.
+This service is kept as a backup for potential future direct embedding generation.
 """
 
 import asyncio

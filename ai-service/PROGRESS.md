@@ -1,247 +1,201 @@
-# AI Service 开发进度
+# AI 测试助手 - 开发进度
 
 ## 已完成任务
 
 ### ✅ 任务 1: 搭建 Python AI 服务基础设施
+- [x] 创建项目结构
+- [x] 设置 FastAPI 应用
+- [x] 配置 CORS 和中间件
+- [x] 实现健康检查端点
+- [x] 设置日志配置
+- [x] 创建 Docker 配置
+- [x] 编写单元测试（13 个测试全部通过）
 
-**完成内容：**
-- ✅ 创建项目结构（agent/, skill/, tool/, integration/, api/）
-- ✅ FastAPI 应用设置（main.py）
-- ✅ 配置管理（config.py）- 支持环境变量和动态配置
-- ✅ CORS 中间件配置
-- ✅ 健康检查端点（/health）
-- ✅ 日志配置
-- ✅ Docker 配置（Dockerfile）
-- ✅ 单元测试（13 个测试用例）
-- ✅ 项目文档（README.md, INSTALL.md）
-
-**文件：**
+**文件**:
 - `main.py` - FastAPI 应用入口
 - `app/config.py` - 配置管理
 - `Dockerfile` - Docker 配置
-- `requirements.txt` - 依赖列表
 - `tests/test_main.py` - 主应用测试
 - `tests/test_config.py` - 配置测试
 
 ---
 
-### ✅ 任务 2: 实现集成服务（BRConnector、Embedding、Weaviate）
+### ✅ 任务 2: 实现集成服务
+- [x] 2.1 实现 BRConnectorClient（Claude API 客户端）
+- [x] 2.2 为 BRConnectorClient 编写单元测试（17 个测试）
+- [x] 2.3 实现 VolcanoEmbeddingService（火山引擎 Embedding）
+- [x] 2.4 为 VolcanoEmbeddingService 编写单元测试（16 个测试）
+- [x] 2.5 实现 WeaviateClient 包装器
+- [x] 2.6 为 WeaviateClient 编写单元测试（20 个测试）
 
-#### 2.1 ✅ BRConnectorClient - Claude API 客户端
+**特性**:
+- 所有服务支持动态配置（API key、endpoint 可按请求覆盖）
+- 自动重试机制（使用 tenacity）
+- 完善的错误处理和日志记录
+- 所有代码使用中文注释和文档字符串
 
-**功能特性：**
-- ✅ 异步 HTTP 客户端（httpx）
-- ✅ 支持流式和非流式响应
-- ✅ 自动重试机制（tenacity）
-- ✅ 速率限制处理
-- ✅ 动态配置支持（API key, model, base URL 可按请求覆盖）
-- ✅ 错误处理（RateLimitError, APIError）
-- ✅ 简化接口（chat_simple）
-
-**文件：**
-- `app/integration/brconnector_client.py` - 客户端实现
-- `tests/test_brconnector_client.py` - 单元测试（20+ 测试用例）
-
-**使用示例：**
-```python
-async with BRConnectorClient(api_key="key", base_url="url") as client:
-    # 非流式请求
-    response = await client.chat(
-        messages=[{"role": "user", "content": "Hello"}],
-        model="claude-4-5-sonnet",
-        temperature=0.7,
-    )
-    
-    # 流式请求
-    async for event in await client.chat(messages, stream=True):
-        print(event)
-    
-    # 简化接口
-    text = await client.chat_simple("Hello", system="You are helpful")
-```
-
-#### 2.2 ✅ VolcanoEmbeddingService - 火山引擎 Embedding 服务
-
-**功能特性：**
-- ✅ 异步 HTTP 客户端
-- ✅ 单个文本 embedding（embed_single）
-- ✅ 批量 embedding（embed_batch）
-- ✅ 自动批次分割（max_batch_size=100）
-- ✅ 动态配置支持（API key, endpoint 可按请求覆盖）
-- ✅ 超时和错误处理
-- ✅ 获取 embedding 维度（get_embedding_dimension）
-
-**文件：**
-- `app/integration/volcano_embedding.py` - 服务实现
-- `tests/test_volcano_embedding.py` - 单元测试（15+ 测试用例）
-
-**使用示例：**
-```python
-async with VolcanoEmbeddingService(api_key="key", endpoint="url") as service:
-    # 单个文本
-    embedding = await service.embed_single("Hello world")
-    
-    # 批量文本
-    embeddings = await service.embed_batch(["Text 1", "Text 2", "Text 3"])
-    
-    # 获取维度
-    dimension = await service.get_embedding_dimension()  # 2048
-```
-
-#### 2.3 ✅ WeaviateClient - Weaviate 向量数据库客户端
-
-**功能特性：**
-- ✅ Weaviate Python 客户端包装
-- ✅ 向量相似度搜索（search_similar）
-- ✅ 混合搜索（search_similar_hybrid）- 结合向量和关键词
-- ✅ 连接池管理
-- ✅ 动态 URL 配置
-- ✅ 过滤条件支持（where_filter）
-- ✅ 相似度阈值控制
-- ✅ 连接状态检查（is_ready）
-- ✅ 错误处理
-
-**文件：**
-- `app/integration/weaviate_client.py` - 客户端实现
-- `tests/test_weaviate_client.py` - 单元测试（20+ 测试用例）
-
-**使用示例：**
-```python
-with WeaviateClient(url="http://localhost:8009") as client:
-    # 向量搜索
-    results = await client.search_similar(
-        class_name="PRDDocument",
-        vector=[0.1, 0.2, ...],
-        limit=10,
-        threshold=0.7,
-    )
-    
-    # 混合搜索
-    results = await client.search_similar_hybrid(
-        class_name="TestCase",
-        query_text="登录功能",
-        vector=[0.1, 0.2, ...],
-        alpha=0.5,  # 0=纯关键词, 1=纯向量
-        limit=10,
-    )
-    
-    # 检查连接
-    if client.is_ready():
-        print("Weaviate is ready")
-```
+**文件**:
+- `app/integration/brconnector_client.py` - Claude API 客户端
+- `app/integration/volcano_embedding.py` - Embedding 服务
+- `app/integration/weaviate_client.py` - Weaviate 客户端
+- `tests/test_brconnector_client.py` - BRConnector 测试
+- `tests/test_volcano_embedding.py` - Embedding 测试
+- `tests/test_weaviate_client.py` - Weaviate 测试
 
 ---
 
-## 设计亮点
+### ✅ 任务 3.1: 实现检索工具（重构版）
+- [x] 创建工具基类 `BaseTool` 和 `ToolError`
+- [x] 实现 `SearchPRDTool`（通过 Go 后端 API）
+- [x] 实现 `SearchTestCaseTool`（通过 Go 后端 API）
+- [x] 实现 `GetRelatedCasesTool`（通过 Go 后端 API）
+- [x] 编写单元测试（7 个测试全部通过）
 
-### 1. 动态配置支持
+**架构改进**:
+- ✅ **避免重复实现**：Python 工具不再直接连接 Weaviate，而是调用 Go 后端的搜索 API
+- ✅ **复用现有功能**：利用 Go 后端的向量检索、混合检索和智能重排功能
+- ✅ **简化配置**：Python 服务只需要配置 Go 后端 URL，不需要 Weaviate 和 Embedding 配置
+- ✅ **统一入口**：所有搜索都通过 Go 后端，便于监控和管理
 
-所有集成服务都支持两种配置方式：
-- **默认配置**：初始化时设置，适合单一环境
-- **动态配置**：每次请求时覆盖，适合多租户/多项目场景
+**工作流程**:
+```
+Python 检索工具 → Go 后端搜索 API → Weaviate + PostgreSQL
+```
 
-这样设计的好处：
-- Go 后端可以从数据库读取用户配置，传递给 Python 服务
-- 配置立即生效，无需重启服务
-- Python 服务保持无状态，易于扩展
+**文件**:
+- `app/tool/base.py` - 工具基类
+- `app/tool/retrieval_tools.py` - 检索工具（重构版）
+- `app/tool/__init__.py` - 工具模块导出
+- `tests/test_retrieval_tools.py` - 检索工具测试（重构版）
+- `app/config.py` - 添加 `GO_BACKEND_URL` 配置
+- `.env.example` - 更新配置说明
 
-### 2. 完善的错误处理
+---
 
-- 自定义异常类型（BRConnectorError, VolcanoEmbeddingError, WeaviateClientError）
-- 区分不同错误类型（RateLimitError, APIError）
-- 详细的错误日志
-- 自动重试机制（针对临时性错误）
+### ✅ 任务 3.5: 实现理解工具
+- [x] 实现 `ParseRequirementTool`（使用 Claude API 解析需求）
+- [x] 实现 `ExtractTestPointsTool`（从需求中提取测试点）
+- [x] 编写单元测试（8 个测试全部通过）
 
-### 3. 异步设计
+**特性**:
+- 将自然语言需求解析为结构化 JSON
+- 提取功能点、约束条件、验收标准
+- 分类测试点（功能、异常、边界值）
+- 智能解析 LLM 响应（支持纯 JSON 和 markdown 代码块）
 
-- 所有 I/O 操作都是异步的
-- 支持并发请求
-- 连接池管理
-- 超时控制
+**文件**:
+- `app/tool/understanding_tools.py` - 理解工具
+- `tests/test_understanding_tools.py` - 理解工具测试
 
-### 4. 测试覆盖
+---
 
-- 单元测试覆盖所有主要功能
-- 测试成功场景和错误场景
-- 测试参数验证
-- 测试动态配置
+### ✅ 任务 3.6: 实现生成工具
+- [x] 实现 `GenerateTestCaseTool`（使用 Claude API 生成测试用例）
+- [x] 实现 `FormatTestCaseTool`（格式化测试用例）
+- [x] 编写单元测试（9 个测试全部通过）
+
+**特性**:
+- 基于测试点和上下文生成详细测试用例
+- 生成标题、前置条件、测试步骤、预期结果
+- 支持上下文信息（需求分析、历史用例）
+- 标准化优先级和测试类型（支持中英文映射）
+- 格式化测试步骤，过滤无效步骤
+
+**文件**:
+- `app/tool/generation_tools.py` - 生成工具
+- `tests/test_generation_tools.py` - 生成工具测试
+
+---
+
+### ✅ 任务 3.9: 实现验证工具
+- [x] 实现 `ValidateCoverageTool`（覆盖率检查）
+- [x] 实现 `CheckDuplicationTool`（重复检测）
+- [x] 实现 `CheckQualityTool`（质量验证）
+- [x] 编写单元测试（10 个测试全部通过）
+
+**特性**:
+- 验证测试用例对需求的覆盖完整性（功能点、异常、边界值）
+- 检测重复或高度相似的测试用例（可配置相似度阈值）
+- 执行质量规则验证（标题、前置条件、步骤、预期结果）
+- 提供详细的验证报告和问题列表
+
+**文件**:
+- `app/tool/validation_tools.py` - 验证工具
+- `tests/test_validation_tools.py` - 验证工具测试
+
+---
+
+## 测试统计
+
+| 模块 | 测试数量 | 状态 |
+|------|---------|------|
+| FastAPI 应用 | 13 | ✅ 全部通过 |
+| BRConnectorClient | 17 | ✅ 全部通过 |
+| VolcanoEmbeddingService | 16 | ✅ 全部通过 |
+| WeaviateClient | 20 | ✅ 全部通过 |
+| 检索工具（重构版） | 7 | ✅ 全部通过 |
+| 理解工具 | 8 | ✅ 全部通过 |
+| 生成工具 | 9 | ✅ 全部通过 |
+| 验证工具 | 10 | ✅ 全部通过 |
+| **总计** | **100** | **✅ 全部通过** |
 
 ---
 
 ## 下一步任务
 
-### 任务 3: 实现 Tool 层（原子能力）
+### 🔄 任务 3.2-3.4: 为检索工具编写属性测试
+- [ ] 3.2 为检索工具编写属性测试（属性 12: RAG 集成）
+- [ ] 3.3 为 embedding 生成编写属性测试（属性 13: Embedding 生成）
+- [ ] 3.4 为最小检索数量编写属性测试（属性 14: 最小检索数量）
 
-需要实现的工具：
-- SearchPRDTool - 搜索 PRD 文档
-- SearchTestCaseTool - 搜索测试用例
-- GetRelatedCasesTool - 获取相关测试用例
-- ParseRequirementTool - 解析需求
-- ExtractTestPointsTool - 提取测试点
-- GenerateTestCaseTool - 生成测试用例
-- FormatTestCaseTool - 格式化测试用例
-- ValidateCoverageTool - 验证覆盖率
-- CheckDuplicationTool - 检查重复
-- CheckQualityTool - 检查质量
-- SaveTestCaseTool - 保存测试用例
-- UpdateTestCaseTool - 更新测试用例
+### 🔄 任务 3.7-3.11: 实现其他工具
+- [ ] 3.7 为测试用例结构编写属性测试（属性 10: 测试用例结构完整性）
+- [ ] 3.8 为 JSON 输出格式编写属性测试（属性 11: JSON 输出格式）
+- [ ] 3.9 实现验证工具（ValidateCoverageTool、CheckDuplicationTool、CheckQualityTool）
+- [ ] 3.10 实现存储工具（SaveTestCaseTool、UpdateTestCaseTool）
+- [ ] 3.11 为存储工具编写属性测试
 
 ---
 
-## 安装和运行
+## 技术债务和改进
 
-### 安装依赖
+### 已解决
+- ✅ 避免 Python 和 Go 后端重复实现搜索功能
+- ✅ 简化 Python 服务的依赖和配置
+- ✅ 统一搜索入口，便于监控和管理
 
-```bash
-# 如果遇到代理问题，先清除代理
-$env:HTTP_PROXY=""
-$env:HTTPS_PROXY=""
-
-# 安装依赖
-pip install -r requirements.txt
-
-# 或使用国内镜像
-pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
-```
-
-### 配置环境变量
-
-复制 `.env.example` 到 `.env` 并填写配置。
-
-### 运行测试
-
-```bash
-# 运行所有测试
-pytest tests/ -v
-
-# 运行特定测试
-pytest tests/test_brconnector_client.py -v
-pytest tests/test_volcano_embedding.py -v
-pytest tests/test_weaviate_client.py -v
-```
-
-### 启动服务
-
-```bash
-python main.py
-```
+### 待处理
+- ✅ **WeaviateClient 和 VolcanoEmbeddingService 保留决策**：
+  - 当前检索工具已通过 Go 后端 API，不再直接使用这些服务
+  - 保留原因：
+    1. 代码质量高，测试完整（36 个测试通过）
+    2. 未来可能需要直接访问进行高级操作
+    3. 为系统提供更多灵活性
+    4. 不影响当前架构，无维护负担
+  - 已在代码注释中标记为备用
 
 ---
 
-## 技术栈
+## 配置说明
 
-- **Web 框架**: FastAPI 0.104.1
-- **HTTP 客户端**: httpx 0.25.2
-- **重试机制**: tenacity 8.2.3
-- **向量数据库**: weaviate-client 3.25.3
-- **配置管理**: pydantic-settings 2.1.0
-- **测试框架**: pytest 7.4.3, pytest-asyncio 0.21.1
+### Go 后端 URL 配置
+Python AI 服务通过 `GO_BACKEND_URL` 环境变量配置 Go 后端地址：
+
+```bash
+# .env 文件
+GO_BACKEND_URL=http://localhost:8080
+```
+
+### 检索工具使用的 API 端点
+- **搜索 PRD**: `POST /api/v1/projects/{project_id}/search`
+- **搜索测试用例**: `POST /api/v1/projects/{project_id}/search`
+- **获取相关测试用例**: `GET /api/v1/projects/{project_id}/testcases/{testcase_id}/recommendations`
 
 ---
 
-## 代码统计
+## 注意事项
 
-- **实现文件**: 3 个（brconnector_client.py, volcano_embedding.py, weaviate_client.py）
-- **测试文件**: 3 个（test_brconnector_client.py, test_volcano_embedding.py, test_weaviate_client.py）
-- **测试用例**: 55+ 个
-- **代码行数**: ~1500 行（含注释和文档）
+1. **项目 ID 必需**：所有检索工具都需要 `project_id` 参数
+2. **Go 后端依赖**：Python AI 服务依赖 Go 后端的搜索 API，确保 Go 后端正常运行
+3. **错误处理**：所有工具都有完善的错误处理和日志记录
+4. **异步实现**：所有工具都是异步的，使用 `async/await`

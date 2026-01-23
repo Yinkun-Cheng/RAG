@@ -3,6 +3,9 @@ Weaviate Client Wrapper
 
 Provides async wrapper for Weaviate vector database operations.
 Supports vector similarity search with error handling.
+
+NOTE: Current retrieval tools have been refactored to use Go backend API.
+This client is kept as a backup for potential future direct Weaviate access.
 """
 
 import logging

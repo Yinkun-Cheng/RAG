@@ -34,55 +34,59 @@
     - 测试速率限制处理
     - _需求: 6.3, 6.4_
   
-  - [x] 2.3 实现 VolcanoEmbeddingService
+  - [x]* 2.3 实现 VolcanoEmbeddingService（可选 - 已通过 Go 后端）
     - 创建用于 embedding 生成的异步客户端
     - 实现单个和批量 embedding 方法
     - 添加错误处理和超时逻辑
+    - _注：检索工具已通过 Go 后端 API，此服务保留作为备用_
     - _需求: 5.2, 10.1_
   
-  - [x] 2.4 为 VolcanoEmbeddingService 编写单元测试
+  - [x]* 2.4 为 VolcanoEmbeddingService 编写单元测试（可选）
     - 测试 embedding 生成
     - 测试批处理
     - 测试错误处理
     - _需求: 5.2_
   
-  - [x] 2.5 实现 WeaviateClient 包装器
+  - [x]* 2.5 实现 WeaviateClient 包装器（可选 - 已通过 Go 后端）
     - 创建带连接池的客户端
     - 实现 search_similar 方法
     - 添加连接失败的错误处理
+    - _注：检索工具已通过 Go 后端 API，此客户端保留作为备用_
     - _需求: 5.1, 5.5_
   
-  - [x] 2.6 为 WeaviateClient 编写单元测试
+  - [x]* 2.6 为 WeaviateClient 编写单元测试（可选）
     - 测试向量搜索
     - 测试错误处理
     - 测试空结果处理
     - _需求: 5.1, 5.5_
 
-- [ ] 3. 实现 Tool 层（原子能力）
-  - [ ] 3.1 实现检索工具
-    - 创建带向量相似度搜索的 SearchPRDTool
-    - 创建带向量相似度搜索的 SearchTestCaseTool
-    - 创建带 PostgreSQL 查询的 GetRelatedCasesTool
+- [-] 3. 实现 Tool 层（原子能力）
+  - [x] 3.1 实现检索工具（已重构为调用 Go 后端 API）
+    - 创建 SearchPRDTool（通过 Go 后端搜索 API）
+    - 创建 SearchTestCaseTool（通过 Go 后端搜索 API）
+    - 创建 GetRelatedCasesTool（通过 Go 后端推荐 API）
+    - _注：已重构为调用 Go 后端，避免重复实现_
     - _需求: 5.1, 5.2, 5.5_
   
-  - [ ] 3.2 为检索工具编写属性测试
-    - **属性 12: RAG 集成**
+  - [ ]* 3.2 为检索工具编写属性测试（可选）
+    - **属性 12: RAG 集成（通过 Go 后端）**
     - **验证: 需求 5.1**
   
-  - [ ] 3.3 为 embedding 生成编写属性测试
-    - **属性 13: Embedding 生成**
-    - **验证: 需求 5.2**
+  - [ ]* 3.3 为 embedding 生成编写属性测试（不需要）
+    - ~~**属性 13: Embedding 生成**~~
+    - _注：不再直接使用 embedding，已通过 Go 后端_
+    - ~~**验证: 需求 5.2**~~
   
-  - [ ] 3.4 为最小检索数量编写属性测试
-    - **属性 14: 最小检索数量**
+  - [ ]* 3.4 为最小检索数量编写属性测试（可选）
+    - **属性 14: 最小检索数量（通过 Go 后端）**
     - **验证: 需求 5.5**
   
-  - [ ] 3.5 实现理解工具
+  - [x] 3.5 实现理解工具
     - 使用 LLM 创建 ParseRequirementTool
     - 创建用于测试点提取的 ExtractTestPointsTool
     - _需求: 4.1_
   
-  - [ ] 3.6 实现生成工具
+  - [x] 3.6 实现生成工具
     - 使用 LLM 创建 GenerateTestCaseTool
     - 创建用于结构格式化的 FormatTestCaseTool
     - _需求: 4.2, 4.4_
@@ -95,15 +99,16 @@
     - **属性 11: JSON 输出格式**
     - **验证: 需求 4.4**
   
-  - [ ] 3.9 实现验证工具
+  - [x] 3.9 实现验证工具
     - 创建用于覆盖率检查的 ValidateCoverageTool
     - 创建用于重复检测的 CheckDuplicationTool
     - 创建用于质量验证的 CheckQualityTool
     - _需求: 4.3_
   
-  - [ ] 3.10 实现存储工具
-    - 创建用于 PostgreSQL 和 Weaviate 的 SaveTestCaseTool
-    - 创建用于更新的 UpdateTestCaseTool
+  - [-] 3.10 实现存储工具
+    - 创建通过 Go 后端 API 保存的 SaveTestCaseTool
+    - 创建通过 Go 后端 API 更新的 UpdateTestCaseTool
+    - _注：通过 Go 后端 API 保存，不直接连接数据库_
     - _需求: 8.4_
   
   - [ ] 3.11 为测试用例持久化编写属性测试

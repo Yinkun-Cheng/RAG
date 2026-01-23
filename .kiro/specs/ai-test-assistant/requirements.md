@@ -43,7 +43,7 @@ AI 测试助手（ai-test-assistant）是一个基于 LangChain 和 Claude 4.5 S
 3. THE Python_AI_Service SHALL expose HTTP API endpoints for the Go_Backend to invoke
 4. WHEN the Python_AI_Service starts, THEN it SHALL initialize within 5 seconds
 5. WHEN the Python_AI_Service receives a request, THEN it SHALL support at least 10 concurrent requests
-6. THE Python_AI_Service SHALL implement TestEngineerAgent with extensible Skill architecture
+6. THE Python_AI_Service SHALL implement TestEngineerAgent with extensible Workflow architecture
 
 ### Requirement 3: Go 后端集成
 
@@ -143,15 +143,15 @@ AI 测试助手（ai-test-assistant）是一个基于 LangChain 和 Claude 4.5 S
 
 ### Requirement 11: Agent 架构可扩展性
 
-**User Story:** 作为开发者，我希望 Agent 架构支持后续添加新的 Skill，这样可以不断扩展系统功能。
+**User Story:** 作为开发者，我希望 Agent 架构支持后续添加新的 Workflow，这样可以不断扩展系统功能。
 
 #### Acceptance Criteria
 
-1. THE TestEngineerAgent SHALL use a modular Skill architecture where Skills can be added or removed independently
-2. WHEN a new Skill is added, THEN THE TestEngineerAgent SHALL automatically discover and register it
-3. THE Python_AI_Service SHALL define a clear Skill interface that all Skills must implement
+1. THE TestEngineerAgent SHALL use a modular Workflow architecture where Workflows can be added or removed independently
+2. WHEN a new Workflow is added, THEN THE TestEngineerAgent SHALL automatically discover and register it
+3. THE Python_AI_Service SHALL define a clear Workflow interface that all Workflows must implement
 4. THE Python_AI_Service SHALL provide Tool abstractions for common operations like database queries and API calls
-5. WHEN a Skill is invoked, THEN THE TestEngineerAgent SHALL handle errors gracefully and continue with other Skills
+5. WHEN a Workflow is invoked, THEN THE TestEngineerAgent SHALL handle errors gracefully and continue with other Workflows
 
 ### Requirement 12: 性能和并发处理
 

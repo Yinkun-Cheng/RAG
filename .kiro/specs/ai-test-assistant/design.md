@@ -2,17 +2,22 @@
 
 ## 概述
 
-AI 测试助手（ai-test-assistant）是一个基于 LangChain 和 Claude 4.5 Sonnet 的智能测试用例生成系统。系统采用 Agent + Skills + Tools 架构，在现有的 Go + React 测试用例知识库管理系统基础上，新增 AI 对话能力和自动化测试用例生成功能。
+AI 测试助手（ai-test-assistant）是一个基�?LangChain �?Claude 4.5 Sonnet 的智能测试用例生成系统。系统采�?Agent + Workflow + Tools 架构，在现有�?Go + React 测试用例知识库管理系统基础上，新增 AI 对话能力和自动化测试用例生成功能�?
 
 ### 系统架构
 
-系统采用五层逻辑架构：
+系统采用五层逻辑架构�?
 
-1. **接口层**：React 前端 UI + Go REST API
-2. **智能决策层**：TestEngineerAgent + Subagents（需求分析、测试设计、质量审查）
-3. **能力编排层**：Skills（测试用例生成、影响分析、回归推荐、用例补全）
-4. **能力执行层**：Tools（检索、理解、生成、校验、存储）
+1. **接口�?*：React 前端 UI + Go REST API
+2. **智能决策�?*：TestEngineerAgent + Subagents（需求分析、测试设计、质量审查）
+3. **工作流编排层**：Workflows（测试用例生成、影响分析、回归推荐、用例补全）
+4. **能力执行�?*：Tools（检索、理解、生成、校验、存储）
 5. **知识与数据层**：PostgreSQL + Weaviate + BRConnector API
+
+**架构说明**�?
+- **Workflows（工作流�?*：负责编排多�?Subagent �?Tool，完成复杂的业务流程
+- **Subagents（子 Agent�?*：专注于特定领域的智能决策（需求分析、测试设计、质量审查）
+- **Tools（工具）**：原子化的能力单元（检索、解析、生成、验证、存储）
 
 ### 技术栈
 
@@ -20,61 +25,61 @@ AI 测试助手（ai-test-assistant）是一个基于 LangChain 和 Claude 4.5 S
 - **Go 后端**: Go 1.21 + Gin + GORM
 - **Python AI 服务**: Python 3.11 + FastAPI 0.104 + LangChain 0.1.x
 - **LLM**: Claude 4.5 Sonnet (通过 BRConnector)
-- **向量数据库**: Weaviate 1.22
-- **数据库**: PostgreSQL 15
-- **Embedding**: 火山引擎 Embedding API (2048 维)
+- **向量数据�?*: Weaviate 1.22
+- **数据�?*: PostgreSQL 15
+- **Embedding**: 火山引擎 Embedding API (2048 �?
 
 ## 架构
 
-### 系统组件图
+### 系统组件�?
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     前端 (React)                            │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │ AI 对话页面  │  │ 测试用例     │  │ 其他页面     │     │
-│  │              │  │ 编辑器       │  │              │     │
-│  └──────────────┘  └──────────────┘  └──────────────┘     │
-└─────────────────────────────────────────────────────────────┘
-                            │ HTTP/SSE
-┌─────────────────────────────────────────────────────────────┐
-│                   Go 后端 (API 网关)                        │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │ AI Handler   │  │ 认证         │  │ 其他         │     │
-│  │              │  │ 中间件       │  │ Handlers     │     │
-│  └──────────────┘  └──────────────┘  └──────────────┘     │
-└─────────────────────────────────────────────────────────────┘
-                            │ HTTP
-┌─────────────────────────────────────────────────────────────┐
-│              Python AI 服务 (FastAPI)                       │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │              TestEngineerAgent                       │  │
-│  │  ┌────────────┐ ┌────────────┐ ┌────────────┐      │  │
-│  │  │ 需求分析   │ │ 测试设计   │ │ 质量       │      │  │
-│  │  │ Agent      │ │ Agent      │ │ 审查Agent  │      │  │
-│  │  └────────────┘ └────────────┘ └────────────┘      │  │
-│  └──────────────────────────────────────────────────────┘  │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │                    Skills 层                         │  │
-│  │  ┌────────────┐ ┌────────────┐ ┌────────────┐      │  │
-│  │  │ 测试用例   │ │ 影响       │ │ 回归       │      │  │
-│  │  │ 生成       │ │ 分析       │ │ 推荐       │      │  │
-│  │  └────────────┘ └────────────┘ └────────────┘      │  │
-│  └──────────────────────────────────────────────────────┘  │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │                    Tools 层                          │  │
-│  │  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐       │  │
-│  │  │检索    │ │解析    │ │生成    │ │校验    │       │  │
-│  │  │Tools   │ │Tools   │ │Tools   │ │Tools   │       │  │
-│  │  └────────┘ └────────┘ └────────┘ └────────┘       │  │
-│  └──────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-         │                    │                    │
-         ▼                    ▼                    ▼
-┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-│  PostgreSQL  │    │   Weaviate   │    │ BRConnector  │
-│              │    │  (向量库)    │    │   (Claude)   │
-└──────────────┘    └──────────────┘    └──────────────┘
+┌─────────────────────────────────────────────────────────────�?
+�?                    前端 (React)                            �?
+�? ┌──────────────�? ┌──────────────�? ┌──────────────�?    �?
+�? �?AI 对话页面  �? �?测试用例     �? �?其他页面     �?    �?
+�? �?             �? �?编辑�?      �? �?             �?    �?
+�? └──────────────�? └──────────────�? └──────────────�?    �?
+└─────────────────────────────────────────────────────────────�?
+                            �?HTTP/SSE
+┌─────────────────────────────────────────────────────────────�?
+�?                  Go 后端 (API 网关)                        �?
+�? ┌──────────────�? ┌──────────────�? ┌──────────────�?    �?
+�? �?AI Handler   �? �?认证         �? �?其他         �?    �?
+�? �?             �? �?中间�?      �? �?Handlers     �?    �?
+�? └──────────────�? └──────────────�? └──────────────�?    �?
+└─────────────────────────────────────────────────────────────�?
+                            �?HTTP
+┌─────────────────────────────────────────────────────────────�?
+�?             Python AI 服务 (FastAPI)                       �?
+�? ┌──────────────────────────────────────────────────────�? �?
+�? �?             TestEngineerAgent                       �? �?
+�? �? ┌────────────�?┌────────────�?┌────────────�?     �? �?
+�? �? �?需求分�?  �?�?测试设计   �?�?质量       �?     �? �?
+�? �? �?Agent      �?�?Agent      �?�?审查Agent  �?     �? �?
+�? �? └────────────�?└────────────�?└────────────�?     �? �?
+�? └──────────────────────────────────────────────────────�? �?
+�? ┌──────────────────────────────────────────────────────�? �?
+�? �?                 Workflows �?                       �? �?
+�? �? ┌────────────�?┌────────────�?┌────────────�?     �? �?
+�? �? �?测试用例   �?�?影响       �?�?回归       �?     �? �?
+�? �? �?生成       �?�?分析       �?�?推荐       �?     �? �?
+�? �? └────────────�?└────────────�?└────────────�?     �? �?
+�? └──────────────────────────────────────────────────────�? �?
+�? ┌──────────────────────────────────────────────────────�? �?
+�? �?                   Tools �?                         �? �?
+�? �? ┌────────�?┌────────�?┌────────�?┌────────�?      �? �?
+�? �? │检�?   �?│解�?   �?│生�?   �?│校�?   �?      �? �?
+�? �? │Tools   �?│Tools   �?│Tools   �?│Tools   �?      �? �?
+�? �? └────────�?└────────�?└────────�?└────────�?      �? �?
+�? └──────────────────────────────────────────────────────�? �?
+└─────────────────────────────────────────────────────────────�?
+         �?                   �?                   �?
+         �?                   �?                   �?
+┌──────────────�?   ┌──────────────�?   ┌──────────────�?
+�? PostgreSQL  �?   �?  Weaviate   �?   �?BRConnector  �?
+�?             �?   �? (向量�?    �?   �?  (Claude)   �?
+└──────────────�?   └──────────────�?   └──────────────�?
 ```
 
 
@@ -91,27 +96,27 @@ sequenceDiagram
     participant Weaviate
     participant BRConnector
     
-    用户->>React前端: 输入需求
+    用户->>React前端: 输入需�?
     React前端->>Go后端: POST /api/ai/chat
-    Go后端->>Go后端: 验证和认证
+    Go后端->>Go后端: 验证和认�?
     Go后端->>Python服务: POST /ai/generate
     Python服务->>Python服务: TestEngineerAgent 接收任务
     Python服务->>Weaviate: 查询相似 PRD/用例
-    Weaviate-->>Python服务: 返回前 5 个结果
+    Weaviate-->>Python服务: 返回�?5 个结�?
     Python服务->>Python服务: RequirementAnalysisAgent 分析
     Python服务->>Python服务: TestDesignAgent 生成用例
     Python服务->>BRConnector: 调用 Claude 4.5 Sonnet
     BRConnector-->>Python服务: 流式响应
-    Python服务-->>Go后端: SSE 流
-    Go后端-->>React前端: SSE 流
-    React前端->>用户: 打字机效果显示
+    Python服务-->>Go后端: SSE �?
+    Go后端-->>React前端: SSE �?
+    React前端->>用户: 打字机效果显�?
     Python服务->>Python服务: QualityReviewAgent 校验
-    Python服务-->>Go后端: 最终 JSON 结果
-    Go后端-->>React前端: 返回结构化数据
-    React前端->>用户: 显示可编辑测试用例
+    Python服务-->>Go后端: 最�?JSON 结果
+    Go后端-->>React前端: 返回结构化数�?
+    React前端->>用户: 显示可编辑测试用�?
 ```
 
-## 组件和接口
+## 组件和接�?
 
 ### 1. 前端组件 (React + TypeScript)
 
@@ -120,10 +125,10 @@ sequenceDiagram
 **位置**: `frontend/src/pages/AIAssistant/index.tsx`
 
 **职责**:
-- 渲染带有消息历史的对话界面
-- 处理用户输入和消息提交
+- 渲染带有消息历史的对话界�?
+- 处理用户输入和消息提�?
 - 以打字机效果显示流式响应
-- 管理对话状态
+- 管理对话状�?
 
 **关键接口**:
 
@@ -148,7 +153,7 @@ interface ChatPageState {
 }
 ```
 
-#### 1.2 对话框组件
+#### 1.2 对话框组�?
 
 **位置**: `frontend/src/components/ChatBox/index.tsx`
 
@@ -167,14 +172,14 @@ interface ChatBoxProps {
 }
 ```
 
-#### 1.3 测试用例编辑器组件
+#### 1.3 测试用例编辑器组�?
 
 **位置**: `frontend/src/components/TestCaseEditor/index.tsx`
 
 **职责**:
-- 以可编辑形式显示 AI 生成的测试用例
+- 以可编辑形式显示 AI 生成的测试用�?
 - 验证测试用例字段
-- 提交测试用例到后端保存
+- 提交测试用例到后端保�?
 
 **关键接口**:
 
@@ -203,9 +208,9 @@ interface TestCaseEditorProps {
 
 **职责**:
 - 处理 AI 对话 API 请求
-- 转发请求到 Python AI 服务
-- 流式返回响应到前端
-- 处理错误和超时
+- 转发请求�?Python AI 服务
+- 流式返回响应到前�?
+- 处理错误和超�?
 
 **关键接口**:
 
@@ -242,7 +247,7 @@ type GeneratedCase struct {
 ```
 POST   /api/ai/chat              - 发送消息到 AI
 GET    /api/ai/chat/stream       - 流式 AI 响应 (SSE)
-POST   /api/ai/test-cases/save   - 保存生成的测试用例
+POST   /api/ai/test-cases/save   - 保存生成的测试用�?
 GET    /api/ai/conversations     - 列出对话
 DELETE /api/ai/conversations/:id - 删除对话
 ```
@@ -252,8 +257,8 @@ DELETE /api/ai/conversations/:id - 删除对话
 **位置**: `backend/internal/service/ai/ai_service.go`
 
 **职责**:
-- 与 Python AI 服务通信
-- 处理连接池
+- �?Python AI 服务通信
+- 处理连接�?
 - 实现重试逻辑
 - 转换响应
 
@@ -287,10 +292,10 @@ type GenerateResponse struct {
 **位置**: `ai-service/main.py`
 
 **职责**:
-- 初始化 FastAPI 应用
+- 初始�?FastAPI 应用
 - 配置 CORS 和中间件
 - 注册 API 路由
-- 初始化 Agent 和 Skills
+- 初始�?Agent �?Workflows
 
 **关键接口**:
 
@@ -302,7 +307,7 @@ app = FastAPI(title="AI Test Assistant Service")
 
 @app.post("/ai/generate")
 async def generate_test_cases(request: GenerateRequest) -> GenerateResponse:
-    """基于需求描述生成测试用例"""
+    """基于需求描述生成测试用�?""
     pass
 
 @app.post("/ai/chat/stream")
@@ -312,13 +317,13 @@ async def chat_stream(request: ChatRequest) -> StreamingResponse:
 
 @app.get("/health")
 async def health_check() -> dict:
-    """健康检查端点"""
+    """健康检查端�?""
     return {"status": "healthy"}
 ```
 
-#### 3.2 Agent 层
+#### 3.2 Agent �?
 
-##### 3.2.1 TestEngineerAgent (主 Agent)
+##### 3.2.1 TestEngineerAgent (�?Agent)
 
 **位置**: `ai-service/app/agent/test_engineer_agent.py`
 
@@ -326,10 +331,10 @@ async def health_check() -> dict:
 
 **职责**:
 - 理解用户输入（需求、变更、问题）
-- 确定任务类型（生成用例 / 影响分析 / 回归推荐）
-- 选择合适的 Skill 执行
+- 确定任务类型（生成用�?/ 影响分析 / 回归推荐�?
+- 选择合适的 Workflow 执行
 - 决定是否调用 Subagents
-- 对最终结果进行质量保证
+- 对最终结果进行质量保�?
 
 **关键接口**:
 
@@ -339,9 +344,9 @@ from langchain.chat_models import ChatAnthropic
 from langchain.prompts import ChatPromptTemplate
 
 class TestEngineerAgent:
-    def __init__(self, llm: ChatAnthropic, skills: List[Skill], tools: List[Tool]):
+    def __init__(self, llm: ChatAnthropic, workflows: List[Workflow], tools: List[Tool]):
         self.llm = llm
-        self.skills = skills
+        self.workflows = workflows
         self.tools = tools
         self.agent_executor = self._create_agent_executor()
     
@@ -350,11 +355,11 @@ class TestEngineerAgent:
         # 1. Understand task type
         task_type = await self._classify_task(message)
         
-        # 2. Select appropriate skill
-        skill = self._select_skill(task_type)
+        # 2. Select appropriate workflow
+        workflow = self._select_workflow(task_type)
         
-        # 3. Execute skill with subagents if needed
-        result = await skill.execute(message, context)
+        # 3. Execute workflow with subagents if needed
+        result = await workflow.execute(message, context)
         
         # 4. Quality assurance
         validated_result = await self._validate_result(result)
@@ -365,8 +370,8 @@ class TestEngineerAgent:
         """Classify user request into task types"""
         pass
     
-    def _select_skill(self, task_type: TaskType) -> Skill:
-        """Select appropriate skill based on task type"""
+    def _select_workflow(self, task_type: TaskType) -> Workflow:
+        """Select appropriate workflow based on task type"""
         pass
     
     async def _validate_result(self, result: Any) -> AgentResponse:
@@ -384,7 +389,7 @@ and ensure quality through systematic analysis.
 You have access to:
 - Historical PRD and test case knowledge base
 - Multiple specialized subagents (requirement analysis, test design, quality review)
-- Various skills (test case generation, impact analysis, regression recommendation)
+- Various workflows (test case generation, impact analysis, regression recommendation)
 
 Your goal is to provide high-quality, actionable test cases that cover:
 - Main flow scenarios
@@ -399,7 +404,7 @@ Always think step-by-step and explain your reasoning."""
 
 **Location**: `ai-service/app/agent/requirement_analysis_agent.py`
 
-**Role**: 需求分析专家
+**Role**: 需求分析专�?
 
 **Responsibilities**:
 - Extract functional points from natural language requirements
@@ -643,13 +648,13 @@ class ReviewResult:
     overall_quality: str  # 'excellent' | 'good' | 'needs_improvement'
 ```
 
-#### 3.3 Skills Layer
+#### 3.3 Workflows Layer
 
-##### 3.3.1 TestCaseGenerationSkill (Core Skill)
+##### 3.3.1 TestCaseGenerationWorkflow (Core Workflow)
 
-**Location**: `ai-service/app/skill/test_case_generation_skill.py`
+**Location**: `ai-service/app/workflow/test_case_generation_workflow.py`
 
-**Purpose**: 完整的测试用例自动生成流程
+**Purpose**: 完整的测试用例自动生成流�?
 
 **Workflow**:
 1. Retrieve historical knowledge (PRDs and test cases)
@@ -661,7 +666,7 @@ class ReviewResult:
 **Key Interfaces**:
 
 ```python
-class TestCaseGenerationSkill(Skill):
+class TestCaseGenerationWorkflow(Workflow):
     def __init__(
         self,
         requirement_agent: RequirementAnalysisAgent,
@@ -674,7 +679,7 @@ class TestCaseGenerationSkill(Skill):
         self.quality_review_agent = quality_review_agent
         self.tools = tools
     
-    async def execute(self, requirement: str, context: dict) -> SkillResult:
+    async def execute(self, requirement: str, context: dict) -> WorkflowResult:
         """Execute complete test case generation workflow"""
         
         # Step 1: Retrieve historical knowledge
@@ -709,7 +714,7 @@ class TestCaseGenerationSkill(Skill):
             approved_cases
         )
         
-        return SkillResult(
+        return WorkflowResult(
             test_cases=formatted_cases,
             analysis=analysis,
             review=review,
@@ -721,11 +726,11 @@ class TestCaseGenerationSkill(Skill):
         )
 ```
 
-##### 3.3.2 ImpactAnalysisSkill
+##### 3.3.2 ImpactAnalysisWorkflow
 
-**Location**: `ai-service/app/skill/impact_analysis_skill.py`
+**Location**: `ai-service/app/workflow/impact_analysis_workflow.py`
 
-**Purpose**: 分析需求变更对现有测试用例的影响
+**Purpose**: 分析需求变更对现有测试用例的影�?
 
 **Workflow**:
 1. Retrieve related PRDs and test cases
@@ -736,8 +741,8 @@ class TestCaseGenerationSkill(Skill):
 **Key Interfaces**:
 
 ```python
-class ImpactAnalysisSkill(Skill):
-    async def execute(self, change_description: str, context: dict) -> SkillResult:
+class ImpactAnalysisWorkflow(Workflow):
+    async def execute(self, change_description: str, context: dict) -> WorkflowResult:
         """Analyze impact of requirement changes"""
         
         # Retrieve related PRDs
@@ -756,18 +761,18 @@ class ImpactAnalysisSkill(Skill):
             affected_cases
         )
         
-        return SkillResult(
+        return WorkflowResult(
             impact_report=impact_report,
             affected_modules=impact_report['modules'],
             affected_cases=impact_report['test_cases']
         )
 ```
 
-##### 3.3.3 RegressionRecommendationSkill
+##### 3.3.3 RegressionRecommendationWorkflow
 
-**Location**: `ai-service/app/skill/regression_recommendation_skill.py`
+**Location**: `ai-service/app/workflow/regression_recommendation_workflow.py`
 
-**Purpose**: 推荐回归测试用例集
+**Purpose**: 推荐回归测试用例�?
 
 **Workflow**:
 1. Retrieve historical test cases
@@ -778,8 +783,8 @@ class ImpactAnalysisSkill(Skill):
 **Key Interfaces**:
 
 ```python
-class RegressionRecommendationSkill(Skill):
-    async def execute(self, version_info: dict, context: dict) -> SkillResult:
+class RegressionRecommendationWorkflow(Workflow):
+    async def execute(self, version_info: dict, context: dict) -> WorkflowResult:
         """Recommend regression test cases for a version"""
         
         # Get changed modules
@@ -799,7 +804,7 @@ class RegressionRecommendationSkill(Skill):
             version_info
         )
         
-        return SkillResult(
+        return WorkflowResult(
             recommended_cases=ranked_cases[:50],  # Top 50
             total_candidates=len(candidate_cases),
             ranking_criteria=self._get_ranking_criteria()
@@ -807,11 +812,11 @@ class RegressionRecommendationSkill(Skill):
 ```
 
 
-##### 3.3.4 TestCaseOptimizationSkill
+##### 3.3.4 TestCaseOptimizationWorkflow
 
-**Location**: `ai-service/app/skill/test_case_optimization_skill.py`
+**Location**: `ai-service/app/workflow/test_case_optimization_workflow.py`
 
-**Purpose**: 优化和补全现有测试用例
+**Purpose**: 优化和补全现有测试用�?
 
 **Workflow**:
 1. Validate existing test case quality
@@ -822,8 +827,8 @@ class RegressionRecommendationSkill(Skill):
 **Key Interfaces**:
 
 ```python
-class TestCaseOptimizationSkill(Skill):
-    async def execute(self, test_case_id: str, context: dict) -> SkillResult:
+class TestCaseOptimizationWorkflow(Workflow):
+    async def execute(self, test_case_id: str, context: dict) -> WorkflowResult:
         """Optimize and supplement existing test case"""
         
         # Retrieve existing test case
@@ -841,7 +846,7 @@ class TestCaseOptimizationSkill(Skill):
             missing_points
         )
         
-        return SkillResult(
+        return WorkflowResult(
             quality_issues=quality_issues,
             missing_points=missing_points,
             supplementary_cases=supplements,
@@ -1643,9 +1648,9 @@ class QualityIssue:
     rule: str
     message: str
 
-# Skill models
+# Workflow models
 @dataclass
-class SkillResult:
+class WorkflowResult:
     test_cases: Optional[List[Dict[str, Any]]] = None
     analysis: Optional[AnalysisResult] = None
     review: Optional[ReviewResult] = None
@@ -1733,9 +1738,9 @@ CREATE INDEX idx_ai_generated_cases_conversation ON ai_generated_test_cases(conv
 
 **Validates: Requirements 1.4**
 
-### Property 4: Skill Extensibility
+### Property 4: Workflow Extensibility
 
-*For any* new Skill class that implements the Skill interface, the TestEngineerAgent should be able to discover and register it without modifying the core Agent code.
+*For any* new Workflow class that implements the Workflow interface, the TestEngineerAgent should be able to discover and register it without modifying the core Agent code.
 
 **Validates: Requirements 2.6**
 
@@ -1823,9 +1828,9 @@ CREATE INDEX idx_ai_generated_cases_conversation ON ai_generated_test_cases(conv
 
 **Validates: Requirements 9.2**
 
-### Property 19: Skill Auto-Discovery
+### Property 19: Workflow Auto-Discovery
 
-*For any* Skill class placed in the skills directory that implements the Skill interface, the TestEngineerAgent should automatically discover and register it during initialization.
+*For any* Workflow class placed in the workflows directory that implements the Workflow interface, the TestEngineerAgent should automatically discover and register it during initialization.
 
 **Validates: Requirements 11.2**
 
@@ -1850,7 +1855,7 @@ try {
 } catch (error) {
   if (error instanceof TypeError) {
     // Network error
-    message.error('无法连接到服务器，请检查网络连接');
+    message.error('无法连接到服务器，请检查网络连�?);
   } else {
     message.error('请求失败，请稍后重试');
   }
@@ -1870,7 +1875,7 @@ eventSource.onerror = (error) => {
   setMessages(prev => [...prev, {
     id: generateId(),
     role: 'assistant',
-    content: '连接中断，请重新发送消息',
+    content: '连接中断，请重新发送消�?,
     timestamp: new Date(),
     error: true
   }]);
@@ -1885,11 +1890,11 @@ const validateTestCase = (testCase: GeneratedTestCase): string[] => {
   const errors: string[] = [];
   
   if (!testCase.title || testCase.title.length < 5) {
-    errors.push('测试用例标题不能少于5个字符');
+    errors.push('测试用例标题不能少于5个字�?);
   }
   
   if (!testCase.steps || testCase.steps.length === 0) {
-    errors.push('测试用例必须包含至少一个测试步骤');
+    errors.push('测试用例必须包含至少一个测试步�?);
   }
   
   if (!testCase.expectedResult) {
@@ -2069,17 +2074,17 @@ class TestEngineerAgent:
             # Classify task
             task_type = await self._classify_task(message)
             
-            # Select skill
-            skill = self._select_skill(task_type)
-            if skill is None:
+            # Select workflow
+            workflow = self._select_workflow(task_type)
+            if workflow is None:
                 return AgentResponse(
                     success=False,
-                    error="Unable to determine appropriate skill for this request",
+                    error="Unable to determine appropriate workflow for this request",
                     suggestion="Please rephrase your request or provide more details"
                 )
             
-            # Execute skill
-            result = await skill.execute(message, context)
+            # Execute workflow
+            result = await workflow.execute(message, context)
             
             # Validate result
             validated = await self._validate_result(result)
@@ -2113,11 +2118,11 @@ class TestEngineerAgent:
             )
 ```
 
-#### Skill Execution Errors
+#### Workflow Execution Errors
 
 ```python
-class TestCaseGenerationSkill(Skill):
-    async def execute(self, requirement: str, context: dict) -> SkillResult:
+class TestCaseGenerationWorkflow(Workflow):
+    async def execute(self, requirement: str, context: dict) -> WorkflowResult:
         """Execute with error handling at each step"""
         errors = []
         
@@ -2140,7 +2145,7 @@ class TestCaseGenerationSkill(Skill):
             )
         except Exception as e:
             logger.error(f"Requirement analysis failed: {e}")
-            raise SkillExecutionError("Failed to analyze requirement") from e
+            raise WorkflowExecutionError("Failed to analyze requirement") from e
         
         # Step 3: Design test cases
         try:
@@ -2150,7 +2155,7 @@ class TestCaseGenerationSkill(Skill):
             )
         except Exception as e:
             logger.error(f"Test design failed: {e}")
-            raise SkillExecutionError("Failed to design test cases") from e
+            raise WorkflowExecutionError("Failed to design test cases") from e
         
         # Step 4: Quality review (optional, continue if fails)
         try:
@@ -2173,7 +2178,7 @@ class TestCaseGenerationSkill(Skill):
             errors.append("Quality review unavailable")
         
         # Return result with any errors noted
-        return SkillResult(
+        return WorkflowResult(
             test_cases=test_designs,
             analysis=analysis,
             review=review,
@@ -2267,7 +2272,7 @@ describe('AIAssistant Page', () => {
   it('should render chat interface on mount', () => {
     render(<AIAssistant />);
     expect(screen.getByPlaceholderText('输入消息...')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '发送' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '发�? })).toBeInTheDocument();
   });
   
   it('should display error message when API call fails', async () => {
@@ -2276,7 +2281,7 @@ describe('AIAssistant Page', () => {
     
     render(<AIAssistant />);
     const input = screen.getByPlaceholderText('输入消息...');
-    const sendButton = screen.getByRole('button', { name: '发送' });
+    const sendButton = screen.getByRole('button', { name: '发�? });
     
     fireEvent.change(input, { target: { value: 'Test message' } });
     fireEvent.click(sendButton);
@@ -2381,7 +2386,7 @@ func TestAIHandler_Chat(t *testing.T) {
 
 **Test Coverage**:
 - Agent logic and decision making
-- Skill execution workflows
+- Workflow execution workflows
 - Tool functionality
 - LLM integration
 - Error handling
@@ -2410,7 +2415,7 @@ async def test_requirement_analysis_agent():
     assert "User login" in result.functional_points
 
 @pytest.mark.asyncio
-async def test_test_case_generation_skill():
+async def test_test_case_generation_workflow():
     """Test complete test case generation workflow"""
     # Mock dependencies
     requirement_agent = AsyncMock()
@@ -2452,14 +2457,14 @@ async def test_test_case_generation_skill():
         'format_testcase': AsyncMock(return_value=[{}])
     }
     
-    skill = TestCaseGenerationSkill(
+    workflow = TestCaseGenerationWorkflow(
         requirement_agent,
         test_design_agent,
         quality_review_agent,
         tools
     )
     
-    result = await skill.execute("Test login functionality", {})
+    result = await workflow.execute("Test login functionality", {})
     
     assert result.test_cases is not None
     assert len(result.test_cases) > 0
@@ -2538,7 +2543,7 @@ describe('Property: Message submission triggers API call', () => {
           
           render(<AIAssistant />);
           const input = screen.getByPlaceholderText('输入消息...');
-          const sendButton = screen.getByRole('button', { name: '发送' });
+          const sendButton = screen.getByRole('button', { name: '发�? });
           
           fireEvent.change(input, { target: { value: message } });
           fireEvent.click(sendButton);
@@ -2720,3 +2725,4 @@ async def test_concurrent_requests():
 - Property tests run with increased iterations (500) on main branch
 - Performance tests run nightly
 - Integration tests require test database and mock LLM
+

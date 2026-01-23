@@ -227,7 +227,8 @@ Python 存储工具 → Go 后端测试用例 API → PostgreSQL + Weaviate
 | **RequirementAnalysisAgent** | **9** | **✅ 全部通过** |
 | **TestDesignAgent** | **13** | **✅ 全部通过** |
 | **QualityReviewAgent** | **13** | **✅ 全部通过** |
-| **总计** | **158** | **✅ 全部通过** |
+| **TestCaseGenerationWorkflow** | **11** | **✅ 全部通过** |
+| **总计** | **169** | **✅ 全部通过** |
 
 ---
 
@@ -270,15 +271,47 @@ Python 存储工具 → Go 后端测试用例 API → PostgreSQL + Weaviate
 
 ---
 
+### ✅ 任务 6.1: 实现 TestCaseGenerationWorkflow
+- [x] 6.1 实现 TestCaseGenerationWorkflow（11 个测试）
+
+**特性**:
+- **TestCaseGenerationWorkflow**: 完整的测试用例生成工作流
+  - 编排所有 Subagent 和 Tool 完成测试用例生成
+  - 五步工作流：检索 → 分析 → 设计 → 审查 → 格式化
+  - 每个步骤都有完善的错误处理
+  - 支持部分失败时继续执行（检索和质量审查失败时）
+  - 提供详细的元数据（覆盖率、生成数量、批准数量等）
+  - 支持自定义检索数量限制
+
+**工作流程**:
+1. 检索历史知识（PRD 和测试用例）
+2. 分析需求（RequirementAnalysisAgent）
+3. 设计测试用例（TestDesignAgent）
+4. 质量审查（QualityReviewAgent）
+5. 格式化输出（FormatTestCaseTool）
+
+**文件**:
+- `app/workflow/__init__.py` - Workflow 模块导出
+- `app/workflow/base.py` - Workflow 基类
+- `app/workflow/test_case_generation_workflow.py` - 测试用例生成工作流
+- `tests/test_test_case_generation_workflow.py` - 工作流测试
+
+---
+
 ## 下一步任务
 
-### 🔄 任务 6: 实现 Skills 层
-- [ ] 6.1 实现 TestCaseGenerationSkill
+### 🔄 任务 6: 实现 Workflow 层（工作流编排）
+- [ ] 6.1 实现 TestCaseGenerationWorkflow
 - [ ] 6.2 为测试用例生成编写属性测试
 - [ ] 6.3 为完整工作流编写集成测试
-- [ ] 6.4 实现 ImpactAnalysisSkill
-- [ ] 6.5 实现 RegressionRecommendationSkill
-- [ ] 6.6 实现 TestCaseOptimizationSkill
+- [ ] 6.4 实现 ImpactAnalysisWorkflow
+- [ ] 6.5 实现 RegressionRecommendationWorkflow
+- [ ] 6.6 实现 TestCaseOptimizationWorkflow
+
+**说明**：
+- Workflow 是工作流编排器，负责协调多个 Subagent 和 Tool 完成复杂业务流程
+- 不同于规则库（如 Claude Code 的 Skills），这里的 Workflow 包含可执行的业务逻辑
+- 例如：TestCaseGenerationWorkflow 会依次调用检索工具、需求分析 Agent、测试设计 Agent、质量审查 Agent 等
 
 ---
 

@@ -155,11 +155,12 @@
     - 测试批准/拒绝逻辑
     - _需求: 4.3_
 
-- [ ] 6. 实现 Skills 层
-  - [ ] 6.1 实现 TestCaseGenerationSkill
-    - 使用所有 subagents 和 tools 创建 skill
+- [ ] 6. 实现 Workflow 层（工作流编排）
+  - [x] 6.1 实现 TestCaseGenerationWorkflow
+    - 编排所有 subagents 和 tools 完成测试用例生成
     - 实现完整工作流（检索 → 分析 → 设计 → 审查 → 格式化）
     - 在每个步骤添加错误处理
+    - _注：Workflow 是工作流编排器，负责协调多个 Agent 和 Tool_
     - _需求: 4.1, 4.2, 4.3, 4.4, 5.1, 5.2, 5.3_
   
   - [ ] 6.2 为测试用例生成编写属性测试
@@ -172,38 +173,39 @@
     - 测试错误恢复
     - _需求: 4.1, 4.2, 4.3, 4.4_
   
-  - [ ] 6.4 实现 ImpactAnalysisSkill
-    - 创建用于影响分析的 skill
-    - 实现变更分析工作流
+  - [ ] 6.4 实现 ImpactAnalysisWorkflow
+    - 创建用于影响分析的工作流
+    - 实现变更分析流程编排
     - _需求: 5.1, 5.3_
   
-  - [ ] 6.5 实现 RegressionRecommendationSkill
-    - 创建用于回归测试推荐的 skill
-    - 实现排名和推荐逻辑
+  - [ ] 6.5 实现 RegressionRecommendationWorkflow
+    - 创建用于回归测试推荐的工作流
+    - 实现排名和推荐逻辑编排
     - _需求: 5.1_
   
-  - [ ] 6.6 实现 TestCaseOptimizationSkill
-    - 创建用于测试用例优化的 skill
-    - 实现差距识别和补充生成
+  - [ ] 6.6 实现 TestCaseOptimizationWorkflow
+    - 创建用于测试用例优化的工作流
+    - 实现差距识别和补充生成流程
     - _需求: 4.3_
 
 - [ ] 7. 实现 TestEngineerAgent（主 agent）
-  - [ ] 7.1 使用 skill 注册表创建 TestEngineerAgent
-    - 使用 skills 和 tools 实现 agent 初始化
-    - 创建 skill 发现和注册机制
+  - [ ] 7.1 使用 workflow 注册表创建 TestEngineerAgent
+    - 使用 workflows 和 tools 实现 agent 初始化
+    - 创建 workflow 发现和注册机制
+    - _注：主 Agent 负责理解用户意图，选择合适的 Workflow 执行_
     - _需求: 2.6, 11.1, 11.2_
   
-  - [ ] 7.2 为 skill 可扩展性编写属性测试
-    - **属性 4: Skill 可扩展性**
+  - [ ] 7.2 为 workflow 可扩展性编写属性测试
+    - **属性 4: Workflow 可扩展性**
     - **验证: 需求 2.6**
   
-  - [ ] 7.3 为 skill 自动发现编写属性测试
-    - **属性 19: Skill 自动发现**
+  - [ ] 7.3 为 workflow 自动发现编写属性测试
+    - **属性 19: Workflow 自动发现**
     - **验证: 需求 11.2**
   
   - [ ] 7.4 实现任务分类逻辑
     - 添加将用户请求分类为任务类型的方法
-    - 基于任务类型实现 skill 选择
+    - 基于任务类型实现 workflow 选择
     - _需求: 4.1_
   
   - [ ] 7.5 实现 process_request 方法
@@ -491,6 +493,7 @@
 - 检查点确保在关键里程碑处进行增量验证
 - 属性测试以最少 100 次迭代验证通用正确性属性
 - 单元测试验证特定示例和边缘情况
-- 实施遵循自下而上的方法：Tools → Subagents → Skills → Main Agent → API → 前端
+- 实施遵循自下而上的方法：Tools → Subagents → Workflows → Main Agent → API → 前端
+- Workflows 是工作流编排器，负责协调多个 Subagent 和 Tool 完成复杂业务流程
 - 所有代码都应包含适当的错误处理和日志记录
 - 配置应使用环境变量，永远不要硬编码 API 密钥

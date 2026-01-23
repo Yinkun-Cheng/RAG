@@ -1,6 +1,6 @@
 # AI测试工程智能系统设计说明书（Claude可读版）
 
-本文档用于指导 Claude 协助开发一个基于 RAG + Agent + Skills + Workflow 架构的测试工程智能系统。本系统是在现有《测试用例知识库管理系统（RAG）》基础上的智能升级，目标是让系统不仅能检索知识，还能理解需求、推理测试点、自动生成高质量测试用例，并融入真实测试工程流程。
+本文档用于指导 Claude 协助开发一个基于 RAG + Agent + Workflows + Tools 架构的测试工程智能系统。本系统是在现有《测试用例知识库管理系统（RAG）》基础上的智能升级，目标是让系统不仅能检索知识，还能理解需求、推理测试点、自动生成高质量测试用例，并融入真实测试工程流程。
 
 ---
 
@@ -25,7 +25,7 @@
 
 1. 接口层（UI / API / Dify）
 2. 智能决策层（Agent / Subagent）
-3. 能力编排层（Skills / Workflow）
+3. 能力编排层（Workflows）
 4. 能力执行层（Tools）
 5. 知识与数据层（PostgreSQL + Weaviate）
 
@@ -43,7 +43,7 @@ Claude 主要参与第 2～4 层的逻辑实现与协助推理。
 
 * 理解用户输入（需求、变更、问题）
 * 判断任务类型（生成用例 / 影响分析 / 回归推荐 / 用例补全等）
-* 选择合适的 Skill 执行
+* 选择合适的 Workflow 执行
 * 判断是否需要调用 Subagent
 * 对最终结果进行质量兜底
 
@@ -108,11 +108,11 @@ Tool 是系统中最小的可执行能力单元，负责具体操作。
 
 ---
 
-## 五、Skills 体系设计（业务能力组合层）
+## 五、Workflows 体系设计（业务能力组合层）
 
-Skill 是由多个 Tool 组合而成的完整业务能力模块，直接面向业务目标。
+Workflow 是由多个 Subagent 和 Tool 组合而成的完整业务流程编排，直接面向业务目标。
 
-### 5.1 Skill：测试用例自动生成（核心能力）
+### 5.1 Workflow：测试用例自动生成（核心能力）
 
 内部调用：
 
@@ -129,7 +129,7 @@ Skill 是由多个 Tool 组合而成的完整业务能力模块，直接面向�
 
 ---
 
-### 5.2 Skill：影响分析
+### 5.2 Workflow：影响分析
 
 内部调用：
 
@@ -144,7 +144,7 @@ Skill 是由多个 Tool 组合而成的完整业务能力模块，直接面向�
 
 ---
 
-### 5.3 Skill：回归测试推荐
+### 5.3 Workflow：回归测试推荐
 
 内部调用：
 
@@ -159,7 +159,7 @@ Skill 是由多个 Tool 组合而成的完整业务能力模块，直接面向�
 
 ---
 
-### 5.4 Skill：测试用例补全 / 优化
+### 5.4 Workflow：测试用例补全 / 优化
 
 内部调用：
 
@@ -200,9 +200,8 @@ Skill 是由多个 Tool 组合而成的完整业务能力模块，直接面向�
 internal/ai/
 
 * agent/        → Agent 与 Subagent
-* skill/        → Skills 业务能力层
+* workflow/     → Workflows 业务流程编排层
 * tool/         → Tool 原子能力层
-* workflow/     → Workflow 编排层
 * prompt/       → Prompt 模板管理
 
 现有模块（rag、repository、service）可作为 Tool 的底层实现直接复用。
@@ -212,7 +211,7 @@ internal/ai/
 ## 八、Prompt 设计原则（供 Claude 使用）
 
 1. 每个 Agent / Subagent 使用独立角色 Prompt
-2. 每个 Skill 有明确目标、输入、输出约束
+2. 每个 Workflow 有明确目标、输入、输出约束
 3. 所有输出尽量结构化（JSON / 表格 / 模板格式）
 4. 优先可解释性，其次是完整性，再其次是简洁性
 
@@ -220,7 +219,7 @@ internal/ai/
 
 ## 九、系统演进路线
 
-阶段 1：单 Agent + 单 Skill（测试用例生成）
+阶段 1：单 Agent + 单 Workflow（测试用例生成）
 阶段 2：引入 Subagent + 质量评分机制
 阶段 3：平台化、多模型支持、MCP 接入
 

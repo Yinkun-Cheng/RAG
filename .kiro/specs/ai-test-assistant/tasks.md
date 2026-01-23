@@ -119,37 +119,37 @@
   - 确保所有测试通过，如有问题请询问用户。
 
 - [ ] 5. 实现 Subagent 层
-  - [ ] 5.1 实现 RequirementAnalysisAgent
+  - [x] 5.1 实现 RequirementAnalysisAgent
     - 使用 LLM 和提示模板创建 agent
     - 实现用于需求提取的 analyze 方法
     - 添加结构化输出解析
     - _需求: 4.1_
   
-  - [ ] 5.2 为 RequirementAnalysisAgent 编写单元测试
+  - [x] 5.2 为 RequirementAnalysisAgent 编写单元测试
     - 测试需求解析
     - 测试结构化输出
     - 测试错误处理
     - _需求: 4.1_
   
-  - [ ] 5.3 实现 TestDesignAgent
+  - [x] 5.3 实现 TestDesignAgent
     - 使用 LLM 和提示模板创建 agent
     - 实现 design_tests 方法
     - 添加测试用例设计生成逻辑
     - _需求: 4.2, 4.3_
   
-  - [ ] 5.4 为 TestDesignAgent 编写单元测试
+  - [x] 5.4 为 TestDesignAgent 编写单元测试
     - 测试测试用例生成
     - 测试不同场景类型的覆盖
     - 测试错误处理
     - _需求: 4.2, 4.3_
   
-  - [ ] 5.5 实现 QualityReviewAgent
+  - [x] 5.5 实现 QualityReviewAgent
     - 使用 LLM 和提示模板创建 agent
     - 实现用于质量检查的 review 方法
     - 添加覆盖率评分逻辑
     - _需求: 4.3_
   
-  - [ ] 5.6 为 QualityReviewAgent 编写单元测试
+  - [x] 5.6 为 QualityReviewAgent 编写单元测试
     - 测试质量评分
     - 测试问题检测
     - 测试批准/拒绝逻辑

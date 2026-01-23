@@ -4,7 +4,6 @@ Configuration Management
 Loads configuration from environment variables.
 """
 
-import os
 from typing import List
 from pydantic_settings import BaseSettings
 
@@ -13,18 +12,15 @@ class Settings(BaseSettings):
     """Application settings"""
     
     # Environment
-    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
-    DEBUG: bool = os.getenv("DEBUG", "true").lower() == "true"
+    ENVIRONMENT: str = "development"
+    DEBUG: bool = True
     
     # Server
-    HOST: str = os.getenv("HOST", "0.0.0.0")
-    PORT: int = int(os.getenv("PORT", "5000"))
+    HOST: str = "0.0.0.0"
+    PORT: int = 5000
     
     # CORS
-    CORS_ORIGINS: str = os.getenv(
-        "CORS_ORIGINS", 
-        "http://localhost:3000,http://localhost:8080"
-    )
+    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:8080"
     
     @property
     def cors_origins_list(self) -> List[str]:
@@ -34,25 +30,22 @@ class Settings(BaseSettings):
         return self.CORS_ORIGINS
     
     # Logging
-    LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
+    LOG_LEVEL: str = "INFO"
     
     # BRConnector (Claude API)
-    BRCONNECTOR_API_KEY: str = os.getenv("BRCONNECTOR_API_KEY", "")
-    BRCONNECTOR_BASE_URL: str = os.getenv(
-        "BRCONNECTOR_BASE_URL",
-        "https://d106f995v5mndm.cloudfront.net"
-    )
-    BRCONNECTOR_MODEL: str = os.getenv("BRCONNECTOR_MODEL", "claude-4-5-sonnet")
+    BRCONNECTOR_API_KEY: str = ""
+    BRCONNECTOR_BASE_URL: str = "https://d106f995v5mndm.cloudfront.net"
+    BRCONNECTOR_MODEL: str = "claude-4-5-sonnet"
     
     # Volcano Engine Embedding API
-    VOLCANO_EMBEDDING_API_KEY: str = os.getenv("VOLCANO_EMBEDDING_API_KEY", "")
-    VOLCANO_EMBEDDING_ENDPOINT: str = os.getenv("VOLCANO_EMBEDDING_ENDPOINT", "")
+    VOLCANO_EMBEDDING_API_KEY: str = ""
+    VOLCANO_EMBEDDING_ENDPOINT: str = ""
     
     # Weaviate
-    WEAVIATE_URL: str = os.getenv("WEAVIATE_URL", "http://localhost:8009")
+    WEAVIATE_URL: str = "http://localhost:8009"
     
     # Go Backend
-    GO_BACKEND_URL: str = os.getenv("GO_BACKEND_URL", "http://localhost:8080")
+    GO_BACKEND_URL: str = "http://localhost:8080"
     
     class Config:
         env_file = ".env"

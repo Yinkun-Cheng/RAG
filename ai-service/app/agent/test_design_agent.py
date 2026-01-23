@@ -41,6 +41,7 @@ class TestDesignAgent:
     
     职责：
     - 生成主流程测试场景
+    - 结合我现有测试用例内容格式以及表达生成
     - 设计异常流程测试用例
     - 识别边界值测试点
     - 创建组合场景
@@ -198,14 +199,37 @@ class TestDesignAgent:
             if "```json" in json_str:
                 start = json_str.find("```json") + 7
                 end = json_str.find("```", start)
-                json_str = json_str[start:end].strip()
+                if end == -1:
+                    # 没有找到结束标记，取到字符串末尾
+                    json_str = json_str[start:].strip()
+                else:
+                    json_str = json_str[start:end].strip()
             elif "```" in json_str:
                 start = json_str.find("```") + 3
                 end = json_str.find("```", start)
-                json_str = json_str[start:end].strip()
+                if end == -1:
+                    json_str = json_str[start:].strip()
+                else:
+                    json_str = json_str[start:end].strip()
+            
+            # 尝试修复常见的 JSON 问题
+            # 1. 移除可能的 BOM 和控制字符
+            json_str = json_str.replace('\ufeff', '').replace('\x00', '')
+            
+            # 2. 如果 JSON 不完整（缺少结束括号），尝试修复
+            if json_str.count('[') > json_str.count(']'):
+                json_str += ']' * (json_str.count('[') - json_str.count(']'))
+            if json_str.count('{') > json_str.count('}'):
+                json_str += '}' * (json_str.count('{') - json_str.count('}'))
             
             # 解析 JSON
-            data = json.loads(json_str)
+            try:
+                data = json.loads(json_str)
+            except json.JSONDecodeError as e:
+                self.logger.error(f"JSON 解析失败: {e}")
+                self.logger.debug(f"原始响应: {raw_result[:500]}...")
+                self.logger.debug(f"提取的 JSON: {json_str[:500]}...")
+                raise ValueError(f"无法解析 LLM 响应为 JSON: {e}")
             
             # 确保是列表
             if not isinstance(data, list):

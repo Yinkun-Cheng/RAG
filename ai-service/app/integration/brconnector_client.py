@@ -70,8 +70,9 @@ class BRConnectorClient:
         self.max_retries = max_retries
         
         # Create async HTTP client
+        # DeepSeek Reasoner 需要更长的超时时间
         self.client = httpx.AsyncClient(
-            timeout=httpx.Timeout(timeout),
+            timeout=httpx.Timeout(timeout, read=120.0),  # 读取超时设为 120 秒
             limits=httpx.Limits(max_keepalive_connections=5, max_connections=10),
         )
     
@@ -144,7 +145,18 @@ class BRConnectorClient:
             APIError: When API returns an error
             ValueError: When required parameters are missing
         """
-        url = f"{base_url or self.default_base_url}/v1/messages"
+        # 检测 API 类型（Claude 或 OpenAI 兼容）
+        effective_base_url = base_url or self.default_base_url
+        if "deepseek" in effective_base_url.lower():
+            # DeepSeek API (不需要 /v1 前缀)
+            url = f"{effective_base_url}/chat/completions"
+        elif "openai" in effective_base_url.lower():
+            # OpenAI API
+            url = f"{effective_base_url}/v1/chat/completions"
+        else:
+            # Claude API
+            url = f"{effective_base_url}/v1/messages"
+        
         headers = self._get_headers(api_key)
         
         payload = {
@@ -243,6 +255,38 @@ class BRConnectorClient:
             logger.error(f"Failed to parse response: {e}")
             raise APIError(f"Failed to parse response: {e}")
     
+    async def chat_stream(
+        self,
+        messages: List[Dict[str, str]],
+        **kwargs,
+    ) -> AsyncIterator[str]:
+        """
+        流式聊天接口（简化版）
+        
+        Args:
+            messages: 消息列表
+            **kwargs: 其他参数
+            
+        Yields:
+            文本块
+        """
+        stream = await self.chat(messages, stream=True, **kwargs)
+        
+        async for event in stream:
+            # OpenAI 格式: {"choices": [{"delta": {"content": "..."}}]}
+            if "choices" in event and len(event["choices"]) > 0:
+                delta = event["choices"][0].get("delta", {})
+                content = delta.get("content")
+                if content:
+                    yield content
+            # Claude 格式: {"type": "content_block_delta", "delta": {"text": "..."}}
+            elif event.get("type") == "content_block_delta":
+                delta = event.get("delta", {})
+                if delta.get("type") == "text_delta":
+                    text = delta.get("text", "")
+                    if text:
+                        yield text
+    
     async def chat_simple(
         self,
         prompt: str,
@@ -269,7 +313,20 @@ class BRConnectorClient:
         
         response = await self.chat(messages, stream=False, **kwargs)
         
-        # Extract text from response
+        # 兼容 Claude 和 OpenAI 格式的响应
+        # OpenAI 格式: {"choices": [{"message": {"content": "..."}}]}
+        if "choices" in response and len(response["choices"]) > 0:
+            message = response["choices"][0].get("message", {})
+            content = message.get("content", "")
+            
+            # DeepSeek Reasoner 特殊处理：如果 content 是 dict，提取实际内容
+            if isinstance(content, dict):
+                # DeepSeek Reasoner 格式: {"reasoning_content": "...", "content": "..."}
+                return content.get("content", "")
+            
+            return content
+        
+        # Claude 格式: {"content": [{"text": "..."}]}
         if "content" in response and len(response["content"]) > 0:
             return response["content"][0].get("text", "")
         

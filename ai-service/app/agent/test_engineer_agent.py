@@ -287,7 +287,24 @@ class TestEngineerAgent:
                 temperature=0.0
             )
             
-            task_type_str = response.strip().lower()
+            # 提取响应文本（兼容不同格式）
+            if isinstance(response, dict):
+                # OpenAI/DeepSeek 格式
+                if "choices" in response:
+                    message = response["choices"][0].get("message", {})
+                    content = message.get("content", "")
+                    # DeepSeek Reasoner 特殊处理
+                    if isinstance(content, dict):
+                        task_type_str = content.get("content", "").strip().lower()
+                    else:
+                        task_type_str = content.strip().lower()
+                # Claude 格式
+                elif "content" in response:
+                    task_type_str = response["content"][0].get("text", "").strip().lower()
+                else:
+                    task_type_str = str(response).strip().lower()
+            else:
+                task_type_str = str(response).strip().lower()
             
             # 映射到 TaskType 枚举
             task_type_mapping = {

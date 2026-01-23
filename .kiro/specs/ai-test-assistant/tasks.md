@@ -235,14 +235,14 @@
     - _需求: 1.4, 1.5_
 
 - [ ] 8. 实现 FastAPI 端点
-  - [ ] 8.1 创建 /ai/generate 端点
+  - [x] 8.1 创建 /ai/generate 端点
     - 实现测试用例生成的 POST 处理器
     - 添加请求验证
     - 与 TestEngineerAgent 集成
     - 添加响应格式化
     - _需求: 2.3, 4.1, 4.4_
   
-  - [ ] 8.2 为 SSE 创建 /ai/chat/stream 端点
+  - [x] 8.2 为 SSE 创建 /ai/chat/stream 端点
     - 实现流式响应处理器
     - 添加 SSE 格式化
     - 与 BRConnector 流式传输集成

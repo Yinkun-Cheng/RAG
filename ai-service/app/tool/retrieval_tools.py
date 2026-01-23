@@ -69,9 +69,10 @@ class SearchPRDTool(BaseTool):
             # 构建搜索请求
             search_request = {
                 "query": query,
-                "type": "prd",  # 只搜索 PRD
-                "limit": limit,
-                "score_threshold": threshold,
+                "type": "prd",  # 搜索 PRD
+                "limit": 20,  # 增加返回数量
+                "score_threshold": 0.7,
+                "alpha": 0.9,  # 混合搜索权重
             }
             
             # 调用 Go 后端搜索 API
@@ -101,7 +102,12 @@ class SearchPRDTool(BaseTool):
             
             # 提取搜索结果
             search_response = result.get("data", {})
-            results = search_response.get("results", [])
+            if search_response is None:
+                search_response = {}
+            
+            results = search_response.get("results")
+            if results is None:
+                results = []
             
             # 转换为工具期望的格式
             formatted_results = []
@@ -193,9 +199,10 @@ class SearchTestCaseTool(BaseTool):
             # 构建搜索请求
             search_request = {
                 "query": query,
-                "type": "testcase",  # 只搜索测试用例
-                "limit": limit,
-                "score_threshold": threshold,
+                "type": "testcase",  # 搜索测试用例
+                "limit": 20,  # 增加返回数量
+                "score_threshold": 0.7,
+                "alpha": 0.9,  # 混合搜索权重
             }
             
             # 调用 Go 后端搜索 API
@@ -225,7 +232,12 @@ class SearchTestCaseTool(BaseTool):
             
             # 提取搜索结果
             search_response = result.get("data", {})
-            results = search_response.get("results", [])
+            if search_response is None:
+                search_response = {}
+            
+            results = search_response.get("results")
+            if results is None:
+                results = []
             
             # 转换为工具期望的格式，并应用优先级过滤
             formatted_results = []
@@ -343,7 +355,12 @@ class GetRelatedCasesTool(BaseTool):
             
             # 提取推荐结果
             recommendation_response = result.get("data", {})
-            results = recommendation_response.get("results", [])
+            if recommendation_response is None:
+                recommendation_response = {}
+            
+            results = recommendation_response.get("results")
+            if results is None:
+                results = []
             
             # 转换为工具期望的格式
             formatted_results = []

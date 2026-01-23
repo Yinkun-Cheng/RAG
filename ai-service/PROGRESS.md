@@ -618,15 +618,77 @@ Python 存储工具 → Go 后端测试用例 API → PostgreSQL + Weaviate
 
 ---
 
-### 🔄 任务 8: 实现 FastAPI 端点 - 待开始
-- [ ] 8.1 创建 /ai/generate 端点
-- [ ] 8.2 为 SSE 创建 /ai/chat/stream 端点
+### ✅ 任务 8.1-8.2: 实现 FastAPI 端点
+- [x] 8.1 创建 /ai/generate 端点
+- [x] 8.2 为 SSE 创建 /ai/chat/stream 端点
+
+**特性**:
+- **POST /ai/generate**: 测试用例生成端点
+  - 支持多种任务类型（生成、影响分析、回归推荐、优化）
+  - 自动任务分类和工作流选择
+  - 对话历史管理
+  - 结构化响应格式
+  - 完善的错误处理
+  
+- **POST /ai/chat/stream**: 流式对话端点（SSE）
+  - Server-Sent Events 流式传输
+  - 实时显示 AI 生成过程
+  - 对话上下文管理
+  - 打字机效果支持
+  
+- **GET /ai/conversations**: 列出对话
+  - 支持按项目过滤
+  - 返回对话元数据
+  
+- **DELETE /ai/conversations/{id}**: 删除对话
+  - 删除对话及所有消息
+
+**实现细节**:
+- 单例模式管理全局实例（Agent、ConversationManager、BRConnector）
+- 自动初始化所有 Subagents、Tools 和 Workflows
+- 请求验证和参数校验
+- 超时控制（默认 120 秒）
+- 详细的日志记录
+- Pydantic 模型验证
+
+**测试工具**:
+- `test_api.py`: 自动化测试脚本
+- `TESTING.md`: 完整的测试指南
+- 支持 curl、Postman 测试
+- API 文档：http://localhost:8000/docs
+
+**文件**:
+- `app/api/endpoints.py` - API 端点实现
+- `app/api/__init__.py` - API 路由配置
+- `test_api.py` - 测试脚本
+- `TESTING.md` - 测试指南
+
+---
+
+### 🎯 **可以进行第一次实际测试了！**
+
+完成任务 8.1-8.2 后，Python AI 服务的核心功能已经可以测试了。
+
+**测试步骤**：
+1. 配置 `.env` 文件（BRConnector API Key 和 Go 后端 URL）
+2. 启动服务：`python main.py`
+3. 运行测试：`python test_api.py`
+4. 或访问 API 文档：http://localhost:8000/docs
+
+**注意事项**：
+- 需要真实的 BRConnector API 密钥
+- 需要 Go 后端服务运行（用于检索）
+- 如果 Go 后端未启动，检索功能会失败，但其他功能仍可测试
+
+---
+
+### 🔄 任务 8.3-8.4: API 端点完善 - 待开始
 - [ ] 8.3 添加错误处理中间件
 - [ ] 8.4 为 API 端点编写集成测试
 
 **说明**：
-- 任务 7 已全部完成（TestEngineerAgent 和 ConversationManager）
-- 任务 8 将实现 FastAPI 端点，对外提供 AI 服务接口
+- 任务 8.1-8.2 已完成，可以进行基本测试
+- 任务 8.3-8.4 将进一步完善错误处理和测试覆盖
 
 ---
 
